@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: kabadiwala_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kabadiwala
+      POSTGRES_PASSWORD: kabadiwalapassword
+      POSTGRES_DB: kabadiwala_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kabadiwala -d kabadiwala_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kabadiwala_api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://kabadiwala:kabadiwalapassword@postgres:5432/kabadiwala_db
+      - SECRET_KEY=kabadiwala-super-secret-sih2026-key-32chars
+      - ENVIRONMENT=production
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: kabadiwala_web
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_WS_BASE_URL=ws://localhost:8000
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
