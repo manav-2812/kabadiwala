@@ -1,0 +1,23 @@
+# Pinned requirements for the ML training pipeline
+# Kabadiwala Connect -- SIH 2026 (PS SIH26229)
+#
+# Install: pip install -r requirements.txt
+# GPU optional: install torch with CUDA extras separately.
+#
+# NOTE: None of these are needed at runtime on the FastAPI server.
+# Server inference uses onnxruntime (already in backend/requirements.txt).
+
+torch==2.3.1
+torchvision==0.18.1
+onnx==1.16.0
+onnxruntime==1.18.0
+scikit-learn==1.5.0
+numpy==1.26.4
+Pillow==10.3.0
+pandas==2.2.2
+matplotlib==3.9.0
+scipy==1.13.1
+lightgbm==4.3.0
+statsmodels==0.14.2
+tqdm==4.66.4
+pyyaml==6.0.1
