@@ -1,0 +1,123 @@
+{
+  "description": "Shared golden test vectors for the 6-weight recycler matching algorithm. Both Python (matching.py) and TypeScript (matching.ts) MUST produce identical results for these inputs.",
+  "tolerance": "ranking_score within 0.001",
+  "vectors": [
+    {
+      "id": "M1_HARD_FILTER_UNVERIFIED",
+      "comment": "Unverified recycler must be excluded regardless of proximity",
+      "input": {
+        "collector_lat": 28.6139,
+        "collector_lng": 77.2090,
+        "lot_est_paise": 250000,
+        "weights": {"payout": 0.30, "proximity": 0.25, "rate": 0.20, "pickup": 0.10, "reliability": 0.10, "response": 0.05},
+        "recyclers": [
+          {
+            "id": "r1",
+            "lat": 28.6200,
+            "lng": 77.2100,
+            "authorization_status": "pending",
+            "license_valid_to": null,
+            "rating_avg": 4.8,
+            "reliability_score": 92,
+            "pickup_available": true
+          }
+        ]
+      },
+      "expected": {
+        "count": 0,
+        "comment": "pending status must be filtered out"
+      }
+    },
+    {
+      "id": "M2_EXPIRED_LICENSE_EXCLUDED",
+      "comment": "Verified recycler with expired license must be excluded",
+      "input": {
+        "collector_lat": 28.6139,
+        "collector_lng": 77.2090,
+        "lot_est_paise": 250000,
+        "weights": {"payout": 0.30, "proximity": 0.25, "rate": 0.20, "pickup": 0.10, "reliability": 0.10, "response": 0.05},
+        "recyclers": [
+          {
+            "id": "r1",
+            "lat": 28.6200,
+            "lng": 77.2100,
+            "authorization_status": "verified",
+            "license_valid_to": "2020-01-01T00:00:00Z",
+            "rating_avg": 4.8,
+            "reliability_score": 90,
+            "pickup_available": true
+          }
+        ]
+      },
+      "expected": {
+        "count": 0,
+        "comment": "expired license must be filtered out"
+      }
+    },
+    {
+      "id": "M3_TWO_VERIFIED_RANKED",
+      "comment": "Two verified recyclers -- the closer+pickup one should rank higher with given weights",
+      "input": {
+        "collector_lat": 28.6139,
+        "collector_lng": 77.2090,
+        "lot_est_paise": 200000,
+        "weights": {"payout": 0.30, "proximity": 0.25, "rate": 0.20, "pickup": 0.10, "reliability": 0.10, "response": 0.05},
+        "recyclers": [
+          {
+            "id": "near_pickup",
+            "lat": 28.6200,
+            "lng": 77.2100,
+            "authorization_status": "verified",
+            "license_valid_to": null,
+            "rating_avg": 4.0,
+            "reliability_score": 80,
+            "pickup_available": true
+          },
+          {
+            "id": "far_no_pickup",
+            "lat": 28.8000,
+            "lng": 77.4000,
+            "authorization_status": "verified",
+            "license_valid_to": null,
+            "rating_avg": 4.9,
+            "reliability_score": 95,
+            "pickup_available": false
+          }
+        ]
+      },
+      "expected": {
+        "count": 2,
+        "top_id": "near_pickup",
+        "top_reasons_contains_one_of": ["NEAREST", "PICKUP_AVAILABLE"],
+        "second_id": "far_no_pickup"
+      }
+    },
+    {
+      "id": "M4_REASON_CODES_PRESENT",
+      "comment": "Every ranked result must have at least 1 reason code",
+      "input": {
+        "collector_lat": 19.0760,
+        "collector_lng": 72.8777,
+        "lot_est_paise": 500000,
+        "weights": {"payout": 0.30, "proximity": 0.25, "rate": 0.20, "pickup": 0.10, "reliability": 0.10, "response": 0.05},
+        "recyclers": [
+          {
+            "id": "r1",
+            "lat": 19.0900,
+            "lng": 72.8800,
+            "authorization_status": "verified",
+            "license_valid_to": null,
+            "rating_avg": 4.5,
+            "reliability_score": 88,
+            "pickup_available": false
+          }
+        ]
+      },
+      "expected": {
+        "count": 1,
+        "top_reasons_non_empty": true,
+        "allowed_reason_codes": ["NEAREST", "HIGHEST_PAYOUT", "PICKUP_AVAILABLE", "TRUSTED", "FAST_RESPONSE"]
+      }
+    }
+  ]
+}
