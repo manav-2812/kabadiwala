@@ -1,0 +1,60 @@
+# Classifier Training Configuration
+# Kabadiwala Connect -- SIH 2026 (PS SIH26229)
+
+model:
+  backbone: mobilenet_v3_small
+  num_classes: 10
+  pretrained: true           # ImageNet pretrained weights
+  freeze_backbone_epochs: 3  # freeze backbone for first N epochs
+
+data:
+  manifest: ml/data/manifests/images_manifest.csv
+  image_dir: ml/data/images
+  train_split: 0.75
+  val_split: 0.15
+  test_split: 0.10           # frozen test set -- never used for training decisions
+  min_images_per_class: 60   # gate: training only runs if ALL classes have >= 60 verified images
+  image_size: 224
+
+augmentation:
+  horizontal_flip: true
+  rotation_degrees: 15
+  color_jitter: 0.2
+  random_erasing: 0.1
+
+training:
+  epochs: 30
+  batch_size: 32
+  optimizer: adamw
+  lr: 0.001
+  weight_decay: 0.01
+  lr_scheduler: cosine_annealing
+  early_stopping_patience: 5
+
+calibration:
+  method: temperature_scaling
+  val_split_for_temp: 0.15
+
+export:
+  format: onnx
+  quantization: int8_static
+  size_budget_mb: 4.0
+  opset_version: 17
+
+gates:
+  # Model is only allowed to go demo_only=false after ALL gates pass:
+  min_macro_f1: 0.80
+  min_class_recall: 0.60      # no class recall below this
+  max_model_size_mb: 4.0
+
+classes:
+  - CRT
+  - LCD
+  - PCB
+  - CABLE
+  - BATTERY_LI
+  - BATTERY_PB
+  - MOTOR
+  - MAGNET
+  - PLASTIC_MIXED
+  - OTHER
