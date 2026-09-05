@@ -1,0 +1,13 @@
+photo_path,material_code,sub_class,verified,training_consent,collector_city,lighting,taken_at,sha256
+# This file is intentionally empty -- no real training images collected yet.
+# Format: photo_path,material_code,sub_class,verified,training_consent,collector_city,lighting,taken_at,sha256
+#
+# To add images:
+#   1. Enable Data Collection Mode (long-press version in app Settings)
+#   2. Collector must consent to data sharing
+#   3. Admin must verify the label (Admin > Label Review Queue)
+#   4. Run: make -f ml/Makefile ml-data   to validate the manifest
+#
+# Minimum required before training can start:
+#   60 verified images per class (10 classes = 600 images minimum)
+#   All training_consent = true
