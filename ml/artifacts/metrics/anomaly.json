@@ -1,0 +1,42 @@
+{
+  "dataset": "synthetic_injected_truth",
+  "total_transactions": 420,
+  "clean_transactions": 400,
+  "injected_anomalies": 20,
+  "false_positive_rate": 0.0,
+  "fpr_target_met": true,
+  "rules": {
+    "WEIGHT_VARIANCE": {
+      "ground_truth_count": 5,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "PRICE_BELOW_BAND": {
+      "ground_truth_count": 5,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "UNIT_ERROR_SUSPECT": {
+      "ground_truth_count": 5,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "GPS_MISMATCH": {
+      "ground_truth_count": 5,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  }
+}
