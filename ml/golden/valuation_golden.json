@@ -1,0 +1,96 @@
+{
+  "description": "Shared golden test vectors for Layer-1 valuation rules. Both Python (backend/app/services/valuation.py) and TypeScript (web/src/features/collector/valuation.ts) MUST produce output within tolerance of these values. Tolerance: min/max paise within ±1 paise (integer rounding).",
+  "tolerance_paise": 1,
+  "vectors": [
+    {
+      "id": "V1_PCB_HIGH_WORKING_1KG",
+      "input": {
+        "material_code": "PCB_HIGH",
+        "sub_category": null,
+        "weight_g": 1000,
+        "condition": "working",
+        "base_price_paise_per_kg": 45000
+      },
+      "expected": {
+        "min_paise": 44550,
+        "max_paise": 54450,
+        "p50_paise": 49500,
+        "condition_factor": 1.10,
+        "layer": "rules"
+      },
+      "comment": "working condition 1.10x, 1 kg, base 450 INR/kg = 45000 paise. min=base*0.90*1.10, max=base*1.10*1.10"
+    },
+    {
+      "id": "V2_CABLE_BROKEN_500G",
+      "input": {
+        "material_code": "CABLE",
+        "sub_category": null,
+        "weight_g": 500,
+        "condition": "broken",
+        "base_price_paise_per_kg": 64000
+      },
+      "expected": {
+        "min_paise": 28800,
+        "max_paise": 35200,
+        "p50_paise": 32000,
+        "condition_factor": 1.00,
+        "layer": "rules"
+      },
+      "comment": "broken = 1.00x. 0.5 kg * 64000 paise = 32000 p50. min=0.9x, max=1.1x"
+    },
+    {
+      "id": "V3_BATTERY_LI_BURNT_2KG",
+      "input": {
+        "material_code": "BATTERY_LI",
+        "sub_category": null,
+        "weight_g": 2000,
+        "condition": "burnt",
+        "base_price_paise_per_kg": 7200
+      },
+      "expected": {
+        "min_paise": 9072,
+        "max_paise": 11088,
+        "p50_paise": 10080,
+        "condition_factor": 0.70,
+        "layer": "rules"
+      },
+      "comment": "burnt=0.70, 2kg, base 7200 paise/kg. min=7200*0.90*2*0.70=9072, max=7200*1.10*2*0.70=11088, p50=10080"
+    },
+    {
+      "id": "V4_UNKNOWN_CONDITION_1KG",
+      "input": {
+        "material_code": "PCB_LOW",
+        "sub_category": null,
+        "weight_g": 1000,
+        "condition": "unknown",
+        "base_price_paise_per_kg": 11000
+      },
+      "expected": {
+        "min_paise": 9405,
+        "max_paise": 11495,
+        "p50_paise": 10450,
+        "condition_factor": 0.95,
+        "layer": "rules"
+      },
+      "comment": "unknown condition = 0.95x. min=11000*0.90*1*0.95=9405, max=11000*1.10*1*0.95=11495"
+    },
+    {
+      "id": "V5_ZERO_WEIGHT",
+      "input": {
+        "material_code": "BATTERY_LI",
+        "sub_category": null,
+        "weight_g": 0,
+        "condition": "working",
+        "base_price_paise_per_kg": 7200
+      },
+      "expected": {
+        "min_paise": 0,
+        "max_paise": 0,
+        "p50_paise": 0,
+        "condition_factor": 1.10,
+        "layer": "rules"
+      },
+      "comment": "zero weight always yields zero regardless of condition"
+    }
+  ]
+}
