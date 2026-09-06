@@ -1,0 +1,93 @@
+# Kabadiwala Connect - Realistic Persona & Behaviour Configuration (SIH 2026, PS SIH26229)
+# NOTE: All numbers below are configurable assumptions for synthetic demo generation.
+# They are documented models, NOT claims of real-world statistics.
+
+metadata:
+  version: "1.0.0"
+  description: "Fictional composite persona generator parameters"
+  random_seed: 42
+  target_collectors: 34
+  target_aggregators: 4
+  target_recyclers: 8
+  target_pickup_agents: 8
+  target_staff: 3
+  history_days: 90
+
+volume_and_timing:
+  weekly_lots_poisson:
+    L: 1.5   # Light tier: ~1-2 lots/week
+    M: 4.0   # Medium tier: ~3-5 lots/week
+    H: 7.5   # Heavy tier: ~6-10 lots/week
+  festival_uptick:
+    enabled: true
+    recent_days: 21
+    multiplier: 1.30
+  peak_hours:
+    morning: [10, 11, 12, 13]
+    evening: [16, 17, 18, 19]
+    night_quiet_hours: [22, 23, 0, 1, 2, 3, 4, 5]
+  sunday_volume_discount: 0.40
+
+lot_content:
+  items_per_lot_distribution:
+    1: 0.35
+    2: 0.40
+    3: 0.18
+    4: 0.07
+  focus_material_probability: 0.70
+  other_material_probability: 0.30
+  conditions_distribution:
+    working: 0.12
+    broken: 0.70
+    burnt: 0.10
+    unknown: 0.08
+  source_type_weights:
+    household: 0.50
+    shop: 0.25
+    office: 0.15
+    industrial: 0.08
+    unknown: 0.02
+  weights_lognormal_grams:
+    CABLES: { mean_g: 8000, sigma: 0.60, min_g: 1500, max_g: 25000 }
+    PCB: { mean_g: 2200, sigma: 0.65, min_g: 400, max_g: 9000 }
+    MOTORS: { mean_g: 12000, sigma: 0.70, min_g: 2500, max_g: 42000 }
+    CRT: { mean_g: 16000, sigma: 0.40, min_g: 8000, max_g: 32000 }
+    LCD: { mean_g: 5500, sigma: 0.55, min_g: 1800, max_g: 16000 }
+    BATTERY_LI: { mean_g: 1800, sigma: 0.60, min_g: 300, max_g: 6500 }
+    BATTERY_LEAD: { mean_g: 14000, sigma: 0.50, min_g: 4000, max_g: 28000 }
+    MAGNET: { mean_g: 850, sigma: 0.70, min_g: 150, max_g: 3200 }
+    PLASTIC_MIX: { mean_g: 11000, sigma: 0.55, min_g: 3000, max_g: 30000 }
+    COPPER_WIRE: { mean_g: 6500, sigma: 0.55, min_g: 1200, max_g: 20000 }
+
+pricing_assumptions:
+  formal_premium_percent: 14.5
+  formal_premium_range: [8.0, 20.0]
+  recycler_quote_spread_percent: [3.0, 12.0]
+
+status_mix:
+  completed: 0.75
+  active_recent: 0.10   # listed, quoted, accepted, scheduled, in_progress
+  cancelled: 0.07
+  disputed: 0.03
+  buyer_no_show: 0.02
+  payment_failed_retried: 0.015
+  partial_with_pending_dues: 0.015
+
+payments:
+  cash_target_share: 0.82
+  upi_personas: [16, 33]  # Rajesh Chauhan, Lakshmi Narayanan
+  upi_personas_upi_share: 0.65
+  general_upi_share: 0.10
+  pending_dues_collector_count: 7
+
+weights_and_variance:
+  within_6_percent: 0.80
+  between_6_and_15_percent: 0.15
+  beyond_15_percent: 0.05
+
+ratings_and_trust:
+  min_rating: 4.0
+  max_rating: 4.9
+  avg_trust_score: 88
+
+offline_personas: [9, 11, 31] # Dattatray Kale, Rahul Thorat, Rajwinder Kaur
