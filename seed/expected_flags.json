@@ -1,0 +1,74 @@
+[
+  {
+    "case_id": 1,
+    "code": "WEIGHT_VARIANCE",
+    "severity": "high",
+    "description": "Weight variance of 27% between estimated and actual weigh-in",
+    "target_persona_index": 26,
+    "target_persona_name": "Jaswant Singh",
+    "expected_metric": "variance_pct >= 25.0"
+  },
+  {
+    "case_id": 2,
+    "code": "PRICE_BELOW_BAND",
+    "severity": "high",
+    "description": "Final payout price per kg is 0.45x below the market price band floor",
+    "target_persona_index": 6,
+    "target_persona_name": "Mangal Kamble",
+    "expected_metric": "ratio_to_floor <= 0.50"
+  },
+  {
+    "case_id": 3,
+    "code": "UNIT_ERROR_SUSPECT",
+    "severity": "high",
+    "description": "Price per kg entered with a 10x unit error (paise/rupee confusion)",
+    "target_persona_index": 17,
+    "target_persona_name": "Imran Qureshi",
+    "expected_metric": "unit_multiplier == 10"
+  },
+  {
+    "case_id": 4,
+    "code": "DUPLICATE_PHOTO",
+    "severity": "high",
+    "description": "Identical photo SHA256/pHash reused across two distinct lots",
+    "target_persona_index": 29,
+    "target_persona_name": "Amandeep Singh",
+    "expected_metric": "duplicate_photo_hash"
+  },
+  {
+    "case_id": 5,
+    "code": "GPS_MISMATCH",
+    "severity": "medium",
+    "description": "Handover coordinates logged 6 km away from buyer facility bounds",
+    "target_persona_index": 11,
+    "target_persona_name": "Rahul Thorat",
+    "expected_metric": "distance_km >= 5.0"
+  },
+  {
+    "case_id": 6,
+    "code": "PAYMENT_BEFORE_WEIGH",
+    "severity": "high",
+    "description": "Payment timestamp logged 15 minutes before actual scale weigh-in",
+    "target_persona_index": 21,
+    "target_persona_name": "Deepak Mishra",
+    "expected_metric": "payment_time < weigh_time"
+  },
+  {
+    "case_id": 7,
+    "code": "REPEATED_WEIGHT",
+    "severity": "medium",
+    "description": "Exact same total weight (14,250g) repeated across 4 lots in a single week",
+    "target_persona_index": 4,
+    "target_persona_name": "Santosh Gaikwad",
+    "expected_metric": "repeated_weight_count >= 4"
+  },
+  {
+    "case_id": 8,
+    "code": "QUOTE_FAR_BELOW_MARKET",
+    "severity": "high",
+    "description": "Buyer quote submitted at 55% of the prevailing market floor rate",
+    "target_persona_index": 12,
+    "target_persona_name": "Mohammad Irfan Ansari",
+    "expected_metric": "quote_to_market_ratio <= 0.60"
+  }
+]
