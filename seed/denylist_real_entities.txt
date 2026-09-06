@@ -1,0 +1,19 @@
+# Denylist of real entity names (case-insensitive substring check)
+# Seed generator will fail if any seeded entity contains any of these terms
+attero
+ecoreco
+e-parisaraa
+karo sambhav
+namo ewaste
+recyclekaro
+cerebra
+hulladek
+tes-amm
+sims lifecycle
+sprep
+virogreen
+greenscape
+banyannation
+saahas zero waste
+exigo recycling
+electronic waste company
