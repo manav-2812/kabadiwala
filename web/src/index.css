@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@import "./design/tokens.css";
+@import "./fonts.css";
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: var(--font-sans);
+  background-color: var(--paper-50);
+  color: var(--ink-900);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Tabular numerals for all weights and currency numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Indic text optimization */
+[lang="hi"], [lang="mr"], [lang="pa"] {
+  font-family: var(--font-indic);
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
