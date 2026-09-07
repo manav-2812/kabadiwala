@@ -1,0 +1,48 @@
+:root {
+  /* Brand Color Tokens (Section 4.1) */
+  --forest-900: #0B3D2E;
+  --forest-700: #14634A;
+  --leaf-500: #2E9E5B;
+  --leaf-100: #E4F4EA;
+  --scrap-500: #E9A310;
+  --scrap-100: #FCF3D9;
+  --ink-900: #14201A;
+  --ink-500: #5B6B62;
+  --paper-50: #F7F5EF;
+  --paper-0: #FFFFFF;
+  --line-200: #E3E0D5;
+  --danger-500: #D64545;
+  --danger-100: #FBE7E7;
+  --info-500: #2F6FDE;
+  --info-100: #E5EEFC;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-indic: 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', sans-serif;
+
+  /* Transitions (Section 4.4) */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 180ms var(--ease-out-expo);
+  --transition-normal: 280ms var(--ease-out-expo);
+}
+
+@theme {
+  --color-forest-900: var(--forest-900);
+  --color-forest-700: var(--forest-700);
+  --color-leaf-500: var(--leaf-500);
+  --color-leaf-100: var(--leaf-100);
+  --color-scrap-500: var(--scrap-500);
+  --color-scrap-100: var(--scrap-100);
+  --color-ink-900: var(--ink-900);
+  --color-ink-500: var(--ink-500);
+  --color-paper-50: var(--paper-50);
+  --color-paper-0: var(--paper-0);
+  --color-line-200: var(--line-200);
+  --color-danger-500: var(--danger-500);
+  --color-danger-100: var(--danger-100);
+  --color-info-500: var(--info-500);
+  --color-info-100: var(--info-100);
+
+  --font-sans: var(--font-sans);
+  --font-indic: var(--font-indic);
+}
