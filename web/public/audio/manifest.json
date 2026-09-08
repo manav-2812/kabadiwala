@@ -1,0 +1,625 @@
+{
+  "version": "1.0.0",
+  "description": "Vernacular Spoken Price Board Audio Clip Manifest (SIH26229)",
+  "languages": [
+    "mr",
+    "hi",
+    "pa",
+    "en"
+  ],
+  "fallback": "speech_synthesis",
+  "clips": {
+    "mr": {
+      "materials": {
+        "battery": {
+          "path": "/audio/mr/materials/battery.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_high": {
+          "path": "/audio/mr/materials/pcb_high.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_low": {
+          "path": "/audio/mr/materials/pcb_low.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "copper_wire": {
+          "path": "/audio/mr/materials/copper_wire.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "aluminum_heat": {
+          "path": "/audio/mr/materials/aluminum_heat.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "crt_glass": {
+          "path": "/audio/mr/materials/crt_glass.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "compressor": {
+          "path": "/audio/mr/materials/compressor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "plastic_abs": {
+          "path": "/audio/mr/materials/plastic_abs.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "mixed_motor": {
+          "path": "/audio/mr/materials/mixed_motor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "solar_cell": {
+          "path": "/audio/mr/materials/solar_cell.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "prompts": {
+        "rupees_per_kg": {
+          "path": "/audio/mr/prompts/rupees_per_kg.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "current_rate": {
+          "path": "/audio/mr/prompts/current_rate.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "formal_premium": {
+          "path": "/audio/mr/prompts/formal_premium.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cpcb_authorized": {
+          "path": "/audio/mr/prompts/cpcb_authorized.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cash_payment_verified": {
+          "path": "/audio/mr/prompts/cash_payment_verified.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "numbers": {
+        "0": {
+          "path": "/audio/mr/numbers/0.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "1": {
+          "path": "/audio/mr/numbers/1.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "2": {
+          "path": "/audio/mr/numbers/2.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "3": {
+          "path": "/audio/mr/numbers/3.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "4": {
+          "path": "/audio/mr/numbers/4.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "5": {
+          "path": "/audio/mr/numbers/5.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "6": {
+          "path": "/audio/mr/numbers/6.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "7": {
+          "path": "/audio/mr/numbers/7.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "8": {
+          "path": "/audio/mr/numbers/8.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "9": {
+          "path": "/audio/mr/numbers/9.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "10": {
+          "path": "/audio/mr/numbers/10.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "50": {
+          "path": "/audio/mr/numbers/50.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "100": {
+          "path": "/audio/mr/numbers/100.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "500": {
+          "path": "/audio/mr/numbers/500.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      }
+    },
+    "hi": {
+      "materials": {
+        "battery": {
+          "path": "/audio/hi/materials/battery.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_high": {
+          "path": "/audio/hi/materials/pcb_high.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_low": {
+          "path": "/audio/hi/materials/pcb_low.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "copper_wire": {
+          "path": "/audio/hi/materials/copper_wire.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "aluminum_heat": {
+          "path": "/audio/hi/materials/aluminum_heat.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "crt_glass": {
+          "path": "/audio/hi/materials/crt_glass.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "compressor": {
+          "path": "/audio/hi/materials/compressor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "plastic_abs": {
+          "path": "/audio/hi/materials/plastic_abs.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "mixed_motor": {
+          "path": "/audio/hi/materials/mixed_motor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "solar_cell": {
+          "path": "/audio/hi/materials/solar_cell.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "prompts": {
+        "rupees_per_kg": {
+          "path": "/audio/hi/prompts/rupees_per_kg.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "current_rate": {
+          "path": "/audio/hi/prompts/current_rate.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "formal_premium": {
+          "path": "/audio/hi/prompts/formal_premium.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cpcb_authorized": {
+          "path": "/audio/hi/prompts/cpcb_authorized.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cash_payment_verified": {
+          "path": "/audio/hi/prompts/cash_payment_verified.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "numbers": {
+        "0": {
+          "path": "/audio/hi/numbers/0.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "1": {
+          "path": "/audio/hi/numbers/1.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "2": {
+          "path": "/audio/hi/numbers/2.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "3": {
+          "path": "/audio/hi/numbers/3.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "4": {
+          "path": "/audio/hi/numbers/4.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "5": {
+          "path": "/audio/hi/numbers/5.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "6": {
+          "path": "/audio/hi/numbers/6.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "7": {
+          "path": "/audio/hi/numbers/7.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "8": {
+          "path": "/audio/hi/numbers/8.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "9": {
+          "path": "/audio/hi/numbers/9.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "10": {
+          "path": "/audio/hi/numbers/10.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "50": {
+          "path": "/audio/hi/numbers/50.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "100": {
+          "path": "/audio/hi/numbers/100.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "500": {
+          "path": "/audio/hi/numbers/500.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      }
+    },
+    "pa": {
+      "materials": {
+        "battery": {
+          "path": "/audio/pa/materials/battery.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_high": {
+          "path": "/audio/pa/materials/pcb_high.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_low": {
+          "path": "/audio/pa/materials/pcb_low.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "copper_wire": {
+          "path": "/audio/pa/materials/copper_wire.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "aluminum_heat": {
+          "path": "/audio/pa/materials/aluminum_heat.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "crt_glass": {
+          "path": "/audio/pa/materials/crt_glass.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "compressor": {
+          "path": "/audio/pa/materials/compressor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "plastic_abs": {
+          "path": "/audio/pa/materials/plastic_abs.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "mixed_motor": {
+          "path": "/audio/pa/materials/mixed_motor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "solar_cell": {
+          "path": "/audio/pa/materials/solar_cell.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "prompts": {
+        "rupees_per_kg": {
+          "path": "/audio/pa/prompts/rupees_per_kg.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "current_rate": {
+          "path": "/audio/pa/prompts/current_rate.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "formal_premium": {
+          "path": "/audio/pa/prompts/formal_premium.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cpcb_authorized": {
+          "path": "/audio/pa/prompts/cpcb_authorized.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cash_payment_verified": {
+          "path": "/audio/pa/prompts/cash_payment_verified.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "numbers": {
+        "0": {
+          "path": "/audio/pa/numbers/0.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "1": {
+          "path": "/audio/pa/numbers/1.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "2": {
+          "path": "/audio/pa/numbers/2.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "3": {
+          "path": "/audio/pa/numbers/3.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "4": {
+          "path": "/audio/pa/numbers/4.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "5": {
+          "path": "/audio/pa/numbers/5.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "6": {
+          "path": "/audio/pa/numbers/6.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "7": {
+          "path": "/audio/pa/numbers/7.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "8": {
+          "path": "/audio/pa/numbers/8.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "9": {
+          "path": "/audio/pa/numbers/9.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "10": {
+          "path": "/audio/pa/numbers/10.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "50": {
+          "path": "/audio/pa/numbers/50.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "100": {
+          "path": "/audio/pa/numbers/100.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "500": {
+          "path": "/audio/pa/numbers/500.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      }
+    },
+    "en": {
+      "materials": {
+        "battery": {
+          "path": "/audio/en/materials/battery.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_high": {
+          "path": "/audio/en/materials/pcb_high.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "pcb_low": {
+          "path": "/audio/en/materials/pcb_low.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "copper_wire": {
+          "path": "/audio/en/materials/copper_wire.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "aluminum_heat": {
+          "path": "/audio/en/materials/aluminum_heat.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "crt_glass": {
+          "path": "/audio/en/materials/crt_glass.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "compressor": {
+          "path": "/audio/en/materials/compressor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "plastic_abs": {
+          "path": "/audio/en/materials/plastic_abs.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "mixed_motor": {
+          "path": "/audio/en/materials/mixed_motor.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "solar_cell": {
+          "path": "/audio/en/materials/solar_cell.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "prompts": {
+        "rupees_per_kg": {
+          "path": "/audio/en/prompts/rupees_per_kg.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "current_rate": {
+          "path": "/audio/en/prompts/current_rate.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "formal_premium": {
+          "path": "/audio/en/prompts/formal_premium.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cpcb_authorized": {
+          "path": "/audio/en/prompts/cpcb_authorized.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "cash_payment_verified": {
+          "path": "/audio/en/prompts/cash_payment_verified.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      },
+      "numbers": {
+        "0": {
+          "path": "/audio/en/numbers/0.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "1": {
+          "path": "/audio/en/numbers/1.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "2": {
+          "path": "/audio/en/numbers/2.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "3": {
+          "path": "/audio/en/numbers/3.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "4": {
+          "path": "/audio/en/numbers/4.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "5": {
+          "path": "/audio/en/numbers/5.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "6": {
+          "path": "/audio/en/numbers/6.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "7": {
+          "path": "/audio/en/numbers/7.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "8": {
+          "path": "/audio/en/numbers/8.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "9": {
+          "path": "/audio/en/numbers/9.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "10": {
+          "path": "/audio/en/numbers/10.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "50": {
+          "path": "/audio/en/numbers/50.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "100": {
+          "path": "/audio/en/numbers/100.mp3",
+          "exists": false,
+          "tts_fallback": true
+        },
+        "500": {
+          "path": "/audio/en/numbers/500.mp3",
+          "exists": false,
+          "tts_fallback": true
+        }
+      }
+    }
+  }
+}
