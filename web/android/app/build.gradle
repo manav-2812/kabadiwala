@@ -1,0 +1,50 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "in.kabadiwalaconnect.collector"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "in.kabadiwalaconnect.collector"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode System.getenv("VERSION_CODE")?.toInteger() ?: 1
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+
+        // No largeHeap — we must fit in the standard heap
+        // android:largeHeap is NOT set
+
+        // Localization: only include our supported languages
+        resConfigs "en", "mr", "hi", "pa"
+    }
+
+    // ─── Signing ───
+    signingConfigs {
+        release {
+            def ksFile = System.getenv("KC_KEYSTORE_FILE") ?: "${rootDir}/../release.keystore"
+            def ksPass = System.getenv("KC_KEYSTORE_PASSWORD") ?: ""
+            def kaAlias = System.getenv("KC_KEY_ALIAS") ?: "kabadiwala"
+            def kaPass = System.getenv("KC_KEY_PASSWORD") ?: ""
+
+            if (file(ksFile).exists() && ksPass) {
+                storeFile file(ksFile)
+                storePassword ksPass
+                keyAlias kaAlias
+                keyPassword kaPass
+            }
+        }
+    }
+
+    // ─── Build Types ───
+    buildTypes {
+        debug {
+            // Allow cleartext for demoLan (local network testing)
+            // Controlled by network_security_config.xml
+        }
+        release {
+            minifyEnabled true
