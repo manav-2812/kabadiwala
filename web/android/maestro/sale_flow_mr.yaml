@@ -1,0 +1,40 @@
+# Maestro UI Automation Flow: Main Scrap Sale in Marathi (मराठी)
+# Kabadiwala Connect — SIH 2026 (PS SIH26229)
+#
+# Run on connected device with Maestro:
+#   maestro test web/android/maestro/sale_flow_mr.yaml
+
+appId: in.kabadiwalaconnect.collector
+---
+- launchApp:
+    clearState: true
+
+# 1. Pick Marathi language
+- tapOn: "मराठी"
+
+# 2. Login via OTP
+- tapOn: "लॉगिन करा"
+- inputText: "9876543210"
+- tapOn: "ओटीपी पाठवा"
+- inputText: "123456"
+- tapOn: "सत्यापित करा"
+
+# 3. Add Scrap
+- tapOn: "भंगार जोडा"
+
+# 4. Enter Weight
+- tapOn: "तांबे / Copper"
+- tapOn: "वजन प्रविष्ट करा"
+- inputText: "15"
+- tapOn: "पुढे जा"
+
+# 5. Review & Estimate
+- assertVisible: "अंदाजे दर"
+- tapOn: "खरेदीदार शोधा"
+
+# 6. Accept Recycler Quote
+- tapOn: "स्वीकारा"
+
+# 7. Cash Handover
+- assertVisible: "रोख व्यवहार"
+- tapOn: "व्यवहार पूर्ण करा"
