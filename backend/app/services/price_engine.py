@@ -26,3 +26,15 @@ def calculate_item_estimate(
         "weight_kg": weight_kg,
         "min_paise": min_paise,
         "max_paise": max_paise,
+        "min_inr": round(min_paise / 100.0, 2),
+        "max_inr": round(max_paise / 100.0, 2)
+    }
+
+def get_formal_premium_paise(base_price_paise: int) -> int:
+    """
+    Formal vs Informal premium:
+    Seeded informal local price is ~80% of formal base price.
+    Returns the extra paise earned through the formal authorized channel.
+    """
+    informal_paise = int(round(base_price_paise * 0.80))
+    return max(0, base_price_paise - informal_paise)
