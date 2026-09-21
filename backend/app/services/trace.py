@@ -58,3 +58,33 @@ def verify_event_chain(events: Sequence[Any]) -> Dict[str, Any]:
                 "last_hash": event.event_hash
             }
             
+        # Parse payload
+        try:
+            payload = json.loads(event.payload_json) if isinstance(event.payload_json, str) else event.payload_json
+        except Exception:
+            payload = {}
+
+        expected_hash = compute_event_hash(
+            prev_hash=event.prev_hash,
+            seq=event.seq,
+            event_type=event.event_type,
+            payload=payload,
+            occurred_at=event.occurred_at
+        )
+
+        if event.event_hash != expected_hash:
+            return {
+                "valid": False,
+                "total_events": len(events),
+                "broken_at_seq": event.seq,
+                "last_hash": event.event_hash
+            }
+            
+        prev_hash = event.event_hash
+
+    return {
+        "valid": True,
+        "total_events": len(events),
+        "broken_at_seq": None,
+        "last_hash": prev_hash
+    }
