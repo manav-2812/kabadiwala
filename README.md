@@ -78,5 +78,55 @@ By introducing **statutory Minimum Support Price (MSP) floors**, **cryptographic
 
 ## ⚡ Quick Start & Running Locally
 
+### Prerequisites
+- **Python**: 3.11+ (Python 3.13 fully supported)
+- **Node.js**: v18+ (Node v20+ recommended)
 
-*MSP pricing & audit chain in active development...*
+### One-Click Launch (Recommended)
+```bash
+python rundev.py
+```
+*Automatically checks prerequisites, seeds the SQLite database (if needed), starts FastAPI on `http://localhost:8000`, starts Vite on `http://localhost:5173`, and opens your web browser.*
+
+**Options:**
+- `python rundev.py --seed`: Force re-seed database with fresh mock lots & anomalies.
+- `python rundev.py --no-browser`: Start without auto-opening the browser.
+
+### Windows PowerShell Alternative
+```powershell
+.\run-demo.ps1
+```
+
+### Manual Setup (2 Terminals)
+
+#### Terminal 1: Backend
+```bash
+cd backend
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Linux/Mac:
+# source venv/bin/activate
+
+pip install -r requirements.txt
+python -m app.db.seed
+uvicorn app.main:app --port 8000 --reload
+```
+*Backend runs on `http://localhost:8000`. Interactive OpenAPI documentation at `http://localhost:8000/docs`.*
+
+#### Terminal 2: Web Frontend
+```bash
+cd web
+npm install
+npm run dev
+```
+*Frontend runs on `http://localhost:5173`.*
+
+---
+
+## 🧪 Automated Testing
+
+Run the test suite from the `backend/` directory:
+```bash
+
+*Critical mineral recovery and Form 6 manifests integrated...*
