@@ -1,0 +1,7 @@
+# Recycler Real Facility Onboarding Template
+# SIH 2026 (PS SIH26229) - Kabadiwala Connect
+# Authorization numbers must be verified against official state pollution control board records.
+recycler_code,company_name,city,state,authorization_status,pickup_available,accepted_materials,capacity_kg_month
+REC-FIELD-01,Green Metal Recovery Pvt Ltd,Pune,Maharashtra,verified,true,"PCB,LCD,MOTORS",60000
+REC-FIELD-02,Capital E-Reclaim Systems,Delhi,Delhi,verified,true,"PCB,CABLES,BATTERY_LI",45000
+REC-FIELD-03,Punjab Eco Recycling Hub,Ludhiana,Punjab,verified,false,"MOTORS,CABLES",30000
