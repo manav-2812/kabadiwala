@@ -28,3 +28,33 @@ def verify_event_chain(events: Sequence[Any]) -> Dict[str, Any]:
       {
         "valid": bool,
         "total_events": int,
+        "broken_at_seq": Optional[int],
+        "last_hash": str
+      }
+    """
+    if not events:
+        return {
+            "valid": True,
+            "total_events": 0,
+            "broken_at_seq": None,
+            "last_hash": GENESIS_HASH
+        }
+        
+    prev_hash = GENESIS_HASH
+    for expected_seq, event in enumerate(events, start=1):
+        if event.seq != expected_seq:
+            return {
+                "valid": False,
+                "total_events": len(events),
+                "broken_at_seq": event.seq,
+                "last_hash": event.event_hash
+            }
+        
+        if event.prev_hash != prev_hash:
+            return {
+                "valid": False,
+                "total_events": len(events),
+                "broken_at_seq": event.seq,
+                "last_hash": event.event_hash
+            }
+            
