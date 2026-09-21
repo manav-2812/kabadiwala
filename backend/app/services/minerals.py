@@ -33,3 +33,34 @@ def calculate_recoverable_minerals(
 ) -> List[Dict[str, Any]]:
     """
     items_composition: list of dicts with:
+      - element: str (e.g. 'cu', 'au', 'co')
+      - weight_kg: float
+      - grams_per_kg: float
+    Returns aggregated recoverable grams per element.
+    """
+    totals: Dict[str, float] = {}
+    
+    for item in items_composition:
+        elem = item["element"].lower()
+        w_kg = float(item["weight_kg"])
+        g_per_kg = float(item["grams_per_kg"])
+        eff = EFFICIENCIES.get(elem, 0.75)
+        
+        recovered_g = w_kg * g_per_kg * eff
+        totals[elem] = totals.get(elem, 0.0) + recovered_g
+        
+    result = []
+    # Sort with strategic critical minerals first
+    priority_order = ["cu", "au", "ag", "co", "li", "nd", "pd", "sn", "al", "fe"]
+    for elem in priority_order:
+        if elem in totals and totals[elem] > 0.001:
+            meta = ELEMENT_NAMES.get(elem, {"name_en": elem.upper(), "strategic": False, "color": "#555"})
+            result.append({
+                "element": elem,
+                "name": meta["name_en"],
+                "grams": round(totals[elem], 3),
+                "is_strategic": meta["strategic"],
+                "color_hex": meta["color"]
+            })
+            
+    return result
