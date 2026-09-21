@@ -128,5 +128,55 @@ npm run dev
 
 Run the test suite from the `backend/` directory:
 ```bash
+cd backend
+pytest -v
+```
+All **28 test suites pass in ~1.18s**:
+- `test_price_engine.py`: Tests pricing formulas, MSP floor limits, and condition multipliers.
+- `test_lot_state.py`: Tests state machine transitions and rejects invalid jumps with HTTP 409.
+- `test_hash_chain.py`: Tests SHA-256 sequential hashing, tamper detection, and Merkle repair.
+- `test_minerals.py`: Tests JNARDDC stoichiometric element calculations.
+- `test_migrations.py`: Tests Alembic database migration upgrade and downgrade cycles.
+- `test_ml_and_admin.py`: Tests vision classification, valuation, anomaly flags, and anonymized CSV export.
+- `test_api_endpoints.py`: Tests FastAPI REST routes and public verification.
 
-*Critical mineral recovery and Form 6 manifests integrated...*
+Run the frontend verification suites from the `web/` directory:
+```bash
+cd web
+npm run test:i18n       # Verify 100% key parity across EN, HI, MR, PA
+npm run measure:bundle  # Audit PWA collector chunk (<= 250KB gz) & precache (<= 3MB)
+```
+
+---
+
+## 📂 Repository Structure
+
+```
+kabadiwala/
+├── backend/
+│   ├── app/
+│   │   ├── core/           # Security, config, i18n exceptions, state machine
+│   │   ├── db/             # SQLAlchemy async session, deterministic seed script
+│   │   ├── models/         # 24+ SQLAlchemy models (Users, Lots, Trace, Minerals, etc.)
+│   │   ├── schemas/        # Pydantic v2 schemas
+│   │   ├── services/       # Price engine, trace, receipt PDF, minerals, payments
+│   │   ├── routers/        # FastAPI endpoints (auth, lots, trace, dashboard, demo)
+│   │   ├── ws/             # WebSocket tracking manager (3s live GPS broadcast)
+│   │   └── main.py         # FastAPI application entry point
+│   ├── tests/              # 21 comprehensive automated tests
+│   └── requirements.txt
+├── web/
+│   ├── src/
+│   │   ├── app/            # Router, Providers, Root App
+│   │   ├── design/         # Tokens, UI components (Voice, Weight, Map, RoleSwitcher)
+│   │   ├── features/
+│   │   │   ├── auth/       # Vernacular Login, Demo Switcher store
+│   │   │   ├── collector/  # Home, Basket, LotBuilder, Tracking, Handover, Wallet
+│   │   │   ├── recycler/   # Overview, Marketplace, Handovers, Inventory, Compliance
+│   │   │   ├── admin/      # Ministry KPIs, Critical Minerals, Trace Explorer, Support
+│   │   │   ├── aggregator/ # Micro-hub aggregator dashboard
+│   │   │   └── verify/     # Public document verification
+│   │   ├── i18n/           # Vernacular translations (en, hi, pa)
+│   │   ├── lib/            # API client with offline interception, formatters, voice
+
+*PWA offline sync & vernacular voice support active...*
