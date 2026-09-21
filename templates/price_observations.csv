@@ -1,0 +1,8 @@
+# Real Field Price Observation Template
+# SIH 2026 (PS SIH26229) - Kabadiwala Connect
+# Captures field/mandee price quotes gathered by field research team.
+date,city,material_code,price_per_kg,source
+2026-03-01,Pune,PCB,425,field_survey
+2026-03-01,Delhi NCR,PCB,415,field_survey
+2026-03-01,Ludhiana,MOTORS,88,mandi_quote
+2026-03-02,Pune,CABLES,190,mandi_quote
