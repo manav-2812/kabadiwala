@@ -1,0 +1,9 @@
+# Collector Real Data Import Template
+# SIH 2026 (PS SIH26229) - Kabadiwala Connect
+# NOTE: Real personal data MUST have consent confirmed. Rows without consent_confirmed=TRUE will be rejected.
+# Only minimal fields permitted by PS data minimization rules are accepted.
+collector_code,preferred_language,operating_area,joined_on,consent_confirmed
+KC-FIELD-001,mr,Hadapsar Pune,2026-01-15,TRUE
+KC-FIELD-002,hi,Seelampur Delhi,2026-02-01,TRUE
+KC-FIELD-003,pa,Focal Point Ludhiana,2026-02-10,TRUE
+KC-FIELD-004,en,Peenya Bengaluru,2026-03-01,TRUE
