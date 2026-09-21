@@ -1,0 +1,7 @@
+# Real Field Transaction Import Template
+# SIH 2026 (PS SIH26229) - Kabadiwala Connect
+# Weights in kilograms (converted to grams internally). Prices in Rupees per kg (converted to paise).
+collector_code,occurred_at,material_category,sub_category,weight_kg,quoted_price_per_kg,final_price_per_kg,recycler_code,payment_method,payment_status,collection_area,handover_area
+KC-FIELD-001,2026-03-01T11:20:00Z,PCB,PCB_MOTHERBOARD,4.5,420,430,REC-FIELD-01,cash,paid,Hadapsar Pune,Chakan MIDC Pune
+KC-FIELD-002,2026-03-02T14:15:00Z,CABLES,,12.0,180,185,REC-FIELD-02,cash,paid,Seelampur Delhi,Loni Ghaziabad
+KC-FIELD-003,2026-03-03T16:45:00Z,MOTORS,,25.0,90,92,REC-FIELD-03,cash,paid,Focal Point Ludhiana,Focal Point Ludhiana
