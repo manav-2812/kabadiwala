@@ -1,3 +1,4 @@
+// [SIH-2026-PS-SIH26229] Iteration 6 polish
 /**
  * WebView Compatibility Check
  * Kabadiwala Connect — SIH 2026 (PS SIH26229)
