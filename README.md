@@ -178,5 +178,45 @@ kabadiwala/
 │   │   │   └── verify/     # Public document verification
 │   │   ├── i18n/           # Vernacular translations (en, hi, pa)
 │   │   ├── lib/            # API client with offline interception, formatters, voice
+│   │   └── offline/        # IndexedDB outbox queue
+│   ├── index.html
+│   └── package.json
+├── seed/
+│   ├── generate_realistic.py       # Layer A deterministic seed generator (49 accounts, 8 anomalies)
+│   ├── expected_flags.json         # 8 deliberate anomaly cases mapped to personas
+│   ├── denylist_real_entities.txt  # Prohibited real corporate entities denylist
+│   └── persona_config.yaml         # Configuration & demographic distribution
+├── docs/
+│   ├── seed-data-card.md           # Dataset Card: volumes, privacy rules, parameters
+│   ├── seed-realism-report.md      # Statistical audit scorecard (100% pass)
+│   ├── demo-cast.md                # Presentation cast sheet & 5-minute walkthrough
+│   ├── real-data-onboarding.md     # Layer B consent scripts (4 languages) & importer
+│   ├── er.md                       # Mermaid Entity Relationship diagram
+│   ├── architecture.md             # System architecture, state machine, hash chain math
+│   ├── demo-script.md              # 3-minute hackathon judging walkthrough
+│   ├── api.md                      # REST & WebSocket API specification
+│   └── simulated-vs-real.md        # Honest documentation of prototype simulations
+├── docker-compose.yml
+├── Makefile                        # seed-realistic, verify-seed, reseed-fresh, import-real, retire-synthetic
+├── run-demo.ps1
+└── README.md
+```
 
-*PWA offline sync & vernacular voice support active...*
+---
+
+## 📊 Realistic Seeding & Verification Suite (SIH 2026 Layer A & B)
+
+```bash
+# Generate 49 accounts, 474 lots, 454 transactions, and 8 anomalies deterministically:
+make seed-realistic
+
+# Run the 10-point statistical realism and data minimization audit:
+make verify-seed
+
+# Import verified, consent-gated real field data (Layer B):
+make import-real FILE=data/real/collectors_batch_01.csv
+
+# Retire synthetic demo accounts as real participants are onboarded:
+make retire-synthetic USERS="9800010001,9800010002"
+
+*Android Capacitor 8 packaging & HandoverDesk testing...*
