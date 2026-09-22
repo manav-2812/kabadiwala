@@ -1,3 +1,4 @@
+# [SIH-2026-PS-SIH26229] Iteration 1 polish
 # Android Demo Setup & Connectivity Guide (SIH 2026, PS SIH26229)
 
 This guide details three reliable demonstration configurations for the **Kabadiwala Connect** Android application during the live SIH 2026 evaluation.
