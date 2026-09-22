@@ -1,3 +1,4 @@
+// [SIH-2026-PS-SIH26229] Iteration 8 polish
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../lib/api';
 import { formatINR, formatWeight } from '../../lib/format';
