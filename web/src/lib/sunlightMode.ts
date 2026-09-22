@@ -1,3 +1,4 @@
+// [SIH-2026-PS-SIH26229] Iteration 4 polish
 /**
  * Sunlight / Outdoor High-Contrast Mode Manager
  * Kabadiwala Connect — SIH 2026 (PS SIH26229)
