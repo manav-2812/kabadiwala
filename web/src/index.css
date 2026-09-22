@@ -98,3 +98,28 @@ html.sunlight-mode {
 }
 
 html.sunlight-mode body {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+html.sunlight-mode .text-\[\#5B6B62\],
+html.sunlight-mode .text-\[\#8B9B92\],
+html.sunlight-mode .text-white\/60,
+html.sunlight-mode .text-white\/70,
+html.sunlight-mode .text-white\/80 {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+html.sunlight-mode [class*="border-"] {
+  border-color: #000000 !important;
+}
+
+html.sunlight-mode [class*="bg-\[\#F8FAF9\]"],
+html.sunlight-mode [class*="bg-\[\#F7F5EF\]"] {
+  background-color: #FFFFFF !important;
+}
+
+html.sunlight-mode .touch-target {
+  font-weight: 800 !important;
+}
