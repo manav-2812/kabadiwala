@@ -28,3 +28,38 @@ html, body {
   width: 6px;
   height: 6px;
 }
+::-webkit-scrollbar-track {
+  background: var(--paper-50);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-200);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-500);
+}
+
+/* Touch targets >= 56px for collector interface */
+.touch-target {
+  min-height: 56px;
+  min-width: 56px;
+}
+
+/* ─── Android 15+ Edge-to-Edge Safe Area Insets ─── */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+.safe-top {
+  padding-top: var(--sat);
+}
+
+.safe-bottom {
+  padding-bottom: var(--sab);
+}
+
+.safe-area-pad {
+  padding-top: var(--sat);
