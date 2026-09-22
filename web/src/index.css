@@ -63,3 +63,38 @@ html, body {
 
 .safe-area-pad {
   padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* ─── Accessibility: Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── High-Contrast Sunlight Mode (Outdoor use, 7:1+ contrast) ─── */
+html.sunlight-mode {
+  --forest-900: #000000;
+  --forest-700: #000000;
+  --leaf-500: #005A1E;
+  --leaf-100: #E0FFE0;
+  --scrap-500: #8F5200;
+  --scrap-100: #FFE5A3;
+  --ink-900: #000000;
+  --ink-500: #1A1A1A;
+  --paper-50: #FFFFFF;
+  --paper-0: #FFFFFF;
+  --line-200: #000000;
+  --danger-500: #A80000;
+  --info-500: #002D80;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+html.sunlight-mode body {
