@@ -1,3 +1,4 @@
+// [SIH-2026-PS-SIH26229] Iteration 7 polish
 /**
  * Draft Persistence — Process-Death Safety
  * Kabadiwala Connect — SIH 2026 (PS SIH26229)
