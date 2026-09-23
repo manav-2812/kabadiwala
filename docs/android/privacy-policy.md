@@ -1,3 +1,4 @@
+# [SIH-2026-PS-SIH26229] Iteration 17 polish
 # Privacy Policy — Kabadiwala Connect (SIH 2026, PS SIH26229)
 
 > **Notice:** This document is drafted in plain language for informal waste collectors and recyclers.  
