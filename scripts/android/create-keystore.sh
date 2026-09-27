@@ -1,4 +1,3 @@
-# [SIH-2026-PS-SIH26229] Iteration 123 polish
 #!/usr/bin/env bash
 # create-keystore.sh — Release Keystore Generator
 # Kabadiwala Connect — SIH 2026 (PS SIH26229)

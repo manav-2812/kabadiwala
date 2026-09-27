@@ -1,4 +1,3 @@
-# [SIH-2026-PS-SIH26229] Iteration 118 polish
 import os
 import json
 import pytest

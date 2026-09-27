@@ -218,5 +218,33 @@ make import-real FILE=data/real/collectors_batch_01.csv
 
 # Retire synthetic demo accounts as real participants are onboarded:
 make retire-synthetic USERS="9800010001,9800010002"
+```
 
-*Android Capacitor 8 packaging & HandoverDesk testing...*
+---
+
+## 👥 Demo Personas & Credentials
+
+All seeded personas log in using the universal demo OTP: **`123456`**. For the complete cast sheet, refer to [`docs/demo-cast.md`](file:///d:/PROJECTS/kabadiwala/docs/demo-cast.md).
+
+| Role | Name / Persona | Phone | City / Cluster | Feature Focus |
+|---|---|---|---|---|
+| **Collector (#2)** | Sunita Shinde | `9800010002` | Pune (Hadapsar) | Marathi vernacular, Women in recycling, High trust score (94), Formal premium |
+| **Collector (#7)** | Prakash Sawant | `9800010007` | Pune (Kothrud) | First-time onboarding user, 1 completed lot, Photo scrap wizard |
+| **Collector (#16)**| Rajesh Chauhan | `9800010016` | Jaipur (Sanganer) | 100% UPI Cashless integration, Instant digital wallet payouts |
+| **Collector (#26)**| Jaswant Singh | `9800010026` | Jalandhar (Focal Point) | Punjabi vernacular, Anomaly #1: 27% Weight variance scale dispute |
+| **Collector (#33)**| Lakshmi Narayanan | `9800010033` | Bengaluru (Yeshwanthpur) | English vernacular, Rare mineral specialist (Li, Au, Cu) |
+| **Recycler (#1)** | Sahyadri Urban Metals | `9876543401` | Pune (Bhosari) | Verified CPCB facility, Form 6 manifest issuer, Digital scale weigh-in |
+| **Recycler (#8)** | Malwa Materials Recovery | `9876543408` | Ludhiana | Expired CPCB licence, Demonstrates automated marketplace exclusion |
+| **Admin / Ministry** | Dr. V. Sharma | `9999999999` | National Portal | Collector 360 Dossier (`/admin/collectors`), AI model drift, Tamper detection |
+
+---
+
+## 📜 Compliance & Statutory Alignment
+
+- **E-Waste (Management) Rules, 2022**: Full statutory Form 6 manifest compliance, tamper-evident digital records, and Extended Producer Responsibility (EPR) credit tracking.
+- **Hazardous & Other Wastes Rules, 2016**: Visual safety alerts, anti-burning warnings, and certified TSDF facility intake.
+- **Digital Personal Data Protection (DPDP) Act, 2023**: Public verification strips collector mobile numbers and banking identifiers.
+
+---
+
+*Built with passion for Smart India Hackathon 2026. Empowering green warriors, formalising the circular economy, and safeguarding India's critical mineral future.*

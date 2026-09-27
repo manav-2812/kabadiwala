@@ -1,4 +1,3 @@
-# [SIH-2026-PS-SIH26229] Iteration 108 polish
 # Android Targets — Kabadiwala Connect
 **Smart India Hackathon 2026 — PS SIH26229**
 
