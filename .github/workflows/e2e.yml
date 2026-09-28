@@ -31,7 +31,7 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
 
       - name: Set up Python 3.11 for Backend Server
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: pip
