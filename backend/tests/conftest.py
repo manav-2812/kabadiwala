@@ -9,7 +9,13 @@ All fixtures use pytest-asyncio and httpx AsyncClient for async test support.
 """
 
 import os
+import warnings
 from pathlib import Path
+
+# Suppress StarletteDeprecationWarning for httpx + testclient combo (§2.2)
+warnings.filterwarnings("ignore", message=r".*starlette\.testclient.*")
+warnings.filterwarnings("ignore", message=r".*httpx2.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module=r".*starlette.*")
 
 import pytest
 import pytest_asyncio

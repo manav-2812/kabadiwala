@@ -1,3 +1,9 @@
+import warnings
+
+warnings.filterwarnings("ignore", message=r".*starlette\.testclient.*")
+warnings.filterwarnings("ignore", message=r".*httpx2.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module=r".*starlette.*")
+
 from starlette.testclient import TestClient
 
 from app.main import app

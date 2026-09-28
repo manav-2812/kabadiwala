@@ -49,7 +49,7 @@ jobs:
         working-directory: backend
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt --severity high || true  # non-blocking: report but don't fail until baseline is clean
+          pip-audit -r requirements.txt || true  # non-blocking: report but don't fail until baseline is clean
 
       - name: Run pytest (§2.1, §1.1, §1.8)
         working-directory: backend
