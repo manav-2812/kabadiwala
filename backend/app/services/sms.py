@@ -5,10 +5,12 @@ Supports Fast2SMS (India), 2Factor.in (India), Twilio (Global/India), and MSG91
 """
 
 import re
-import sys
 import secrets
+import sys
+from typing import Any
+
 import httpx
-from typing import Dict, Any
+
 from app.core.config import settings
 
 
@@ -33,7 +35,7 @@ def _safe_print(msg: str) -> None:
         print(msg.encode("ascii", errors="replace").decode("ascii"))
 
 
-async def send_sms_otp(phone: str, otp: str) -> Dict[str, Any]:
+async def send_sms_otp(phone: str, otp: str) -> dict[str, Any]:
     """
     Send real SMS OTP using configured carrier gateways.
     Fallback to formatted console logging if credentials are unset.
@@ -57,7 +59,7 @@ async def send_sms_otp(phone: str, otp: str) -> Dict[str, Any]:
         _safe_print(f"\n{border}")
         _safe_print(f"[DEMO TEST ACCOUNT] OTP GENERATED FOR: {formatted_e164}")
         _safe_print(f"   >>> VERIFICATION CODE: {otp} <<<")
-        _safe_print(f"   Note: Seeded demo account uses simulated code for safe testing.")
+        _safe_print("   Note: Seeded demo account uses simulated code for safe testing.")
         _safe_print(f"{border}\n")
         return {
             "delivered": False,
@@ -188,9 +190,9 @@ async def send_sms_otp(phone: str, otp: str) -> Dict[str, Any]:
     _safe_print(f"\n{border}")
     _safe_print(f"[SMS SIMULATOR] OTP GENERATED FOR: {formatted_e164}")
     _safe_print(f"   >>> VERIFICATION CODE: {otp} <<<")
-    _safe_print(f"   Expires in: 10 minutes")
-    _safe_print(f"")
-    _safe_print(f"[TIP] Live SMS OTP is handled by Firebase Phone Auth (10,000 free SMS/mo).")
+    _safe_print("   Expires in: 10 minutes")
+    _safe_print("")
+    _safe_print("[TIP] Live SMS OTP is handled by Firebase Phone Auth (10,000 free SMS/mo).")
     _safe_print(f"{border}\n")
 
     return {

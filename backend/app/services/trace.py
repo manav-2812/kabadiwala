@@ -1,7 +1,8 @@
 import hashlib
 import json
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple, Sequence
+from collections.abc import Sequence
+from datetime import datetime
+from typing import Any
 
 GENESIS_HASH = "0" * 64
 
@@ -13,7 +14,7 @@ def compute_event_hash(
     prev_hash: str,
     seq: int,
     event_type: str,
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     occurred_at: datetime | str
 ) -> str:
     iso_time = occurred_at.isoformat() if isinstance(occurred_at, datetime) else occurred_at
@@ -21,7 +22,7 @@ def compute_event_hash(
     raw = f"{prev_hash}{seq}{event_type}{payload_str}{iso_time}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-def verify_event_chain(events: Sequence[Any]) -> Dict[str, Any]:
+def verify_event_chain(events: Sequence[Any]) -> dict[str, Any]:
     """
     Verifies the integrity of a list of TraceabilityEvent records ordered by seq.
     Returns:
@@ -39,7 +40,7 @@ def verify_event_chain(events: Sequence[Any]) -> Dict[str, Any]:
             "broken_at_seq": None,
             "last_hash": GENESIS_HASH
         }
-        
+
     prev_hash = GENESIS_HASH
     for expected_seq, event in enumerate(events, start=1):
         if event.seq != expected_seq:
@@ -49,7 +50,7 @@ def verify_event_chain(events: Sequence[Any]) -> Dict[str, Any]:
                 "broken_at_seq": event.seq,
                 "last_hash": event.event_hash
             }
-        
+
         if event.prev_hash != prev_hash:
             return {
                 "valid": False,
@@ -57,7 +58,7 @@ def verify_event_chain(events: Sequence[Any]) -> Dict[str, Any]:
                 "broken_at_seq": event.seq,
                 "last_hash": event.event_hash
             }
-            
+
         # Parse payload
         try:
             payload = json.loads(event.payload_json) if isinstance(event.payload_json, str) else event.payload_json
@@ -79,7 +80,7 @@ def verify_event_chain(events: Sequence[Any]) -> Dict[str, Any]:
                 "broken_at_seq": event.seq,
                 "last_hash": event.event_hash
             }
-            
+
         prev_hash = event.event_hash
 
     return {

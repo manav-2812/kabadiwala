@@ -1,13 +1,16 @@
-from typing import Dict, Any, List
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, Response
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
+
 from app.db.session import get_db
 from app.models.all_models import (
-    Lot, LotItem, Transaction, Recycler, Collector, User, Material,
-    MaterialComposition, Payment, SupportTicket
+    Collector,
+    Lot,
+    LotItem,
+    Material,
+    Recycler,
+    Transaction,
 )
 from app.schemas.all_schemas import AdminKPIs, MineralRecoveryStat
 from app.services.minerals import calculate_recoverable_minerals
@@ -84,7 +87,7 @@ async def get_admin_kpis(db: AsyncSession = Depends(get_db)):
     tot_tonnes = tot_weight_g / 1000000.0
 
     tot_payout_paise = sum((l.final_amount_paise or 0) for l in completed)
-    
+
     col_count = (await db.execute(select(func.count(Collector.id)))).scalar_one()
     rec_count = (await db.execute(select(func.count(Recycler.id)).where(Recycler.authorization_status == "verified"))).scalar_one()
 
@@ -111,7 +114,7 @@ async def get_admin_kpis(db: AsyncSession = Depends(get_db)):
         critical_minerals_recovered_kg=round(tot_minerals_kg, 2)
     )
 
-@router.get("/admin/minerals", response_model=List[MineralRecoveryStat])
+@router.get("/admin/minerals", response_model=list[MineralRecoveryStat])
 async def get_admin_minerals(db: AsyncSession = Depends(get_db)):
     stmt = (
         select(Lot)
@@ -131,9 +134,9 @@ async def get_admin_minerals(db: AsyncSession = Depends(get_db)):
                         "weight_kg": (i.actual_weight_g or i.est_weight_g) / 1000.0,
                         "grams_per_kg": float(c.grams_per_kg)
                     })
-                    
+
     minerals = calculate_recoverable_minerals(comp_inputs)
-    
+
     # Import offsets (illustrative benchmark model)
     offsets = {
         "cu": 12.8, "au": 4.1, "ag": 6.3, "co": 18.5,

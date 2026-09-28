@@ -1,6 +1,7 @@
-import pytest
 from datetime import datetime, timezone
-from app.services.trace import compute_event_hash, verify_event_chain, GENESIS_HASH
+
+from app.services.trace import GENESIS_HASH, compute_event_hash, verify_event_chain
+
 
 class MockEvent:
     def __init__(self, seq, event_type, payload, occurred_at, prev_hash, event_hash):
@@ -13,7 +14,7 @@ class MockEvent:
 
 def test_hash_chain_valid_sequence():
     now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=timezone.utc)
-    
+
     # Block 1
     p1 = {"action": "created", "lot": "KC-001"}
     h1 = compute_event_hash(GENESIS_HASH, 1, "lot_created", p1, now)
@@ -37,7 +38,7 @@ def test_hash_chain_valid_sequence():
 
 def test_hash_chain_tampered_payload():
     now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=timezone.utc)
-    
+
     p1 = {"action": "created"}
     h1 = compute_event_hash(GENESIS_HASH, 1, "lot_created", p1, now)
     e1 = MockEvent(1, "lot_created", p1, now, GENESIS_HASH, h1)
@@ -54,7 +55,7 @@ def test_hash_chain_tampered_payload():
 
 def test_hash_chain_broken_prev_link():
     now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=timezone.utc)
-    
+
     p1 = {"action": "created"}
     h1 = compute_event_hash(GENESIS_HASH, 1, "lot_created", p1, now)
     e1 = MockEvent(1, "lot_created", p1, now, GENESIS_HASH, h1)

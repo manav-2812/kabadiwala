@@ -7,12 +7,13 @@ Dispatches real HTML email verification codes via SMTP (Gmail, Outlook, custom S
 Falls back to formatted console logging if credentials are unset.
 """
 
-import sys
-import smtplib
 import asyncio
-from email.mime.text import MIMEText
+import smtplib
+import sys
 from email.mime.multipart import MIMEMultipart
-from typing import Dict, Any
+from email.mime.text import MIMEText
+from typing import Any
+
 from app.core.config import settings
 
 
@@ -58,7 +59,7 @@ def _send_smtp_sync(to_email: str, subject: str, html_body: str, text_body: str)
     return True
 
 
-async def send_email_otp(to_email: str, otp: str) -> Dict[str, Any]:
+async def send_email_otp(to_email: str, otp: str) -> dict[str, Any]:
     """
     Send an OTP authentication code to user's email address.
     If SMTP credentials are configured, sends real email via SMTP.
@@ -131,7 +132,7 @@ async def send_email_otp(to_email: str, otp: str) -> Dict[str, Any]:
     _safe_print(f"[EMAIL SERVICE] OTP CODE GENERATED FOR: {clean_email}")
     _safe_print(f"   >>> VERIFICATION CODE: {otp} <<<")
     _safe_print(f"   Subject: {subject}")
-    _safe_print(f"   Note: Add SMTP_USER and SMTP_PASSWORD in backend/.env for live delivery.")
+    _safe_print("   Note: Add SMTP_USER and SMTP_PASSWORD in backend/.env for live delivery.")
     _safe_print(f"{border}\n")
 
     return {

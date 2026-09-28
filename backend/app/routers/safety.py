@@ -1,11 +1,12 @@
-from typing import Dict, Any, List
 from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db.session import get_db
+from app.models.all_models import Collector, Lot, Material, SafetyAcknowledgement, User
 from app.routers.auth import get_current_user
-from app.models.all_models import User, Collector, Material, SafetyAcknowledgement, Lot
 
 router = APIRouter(prefix="/safety", tags=["safety"])
 
@@ -44,7 +45,7 @@ async def get_safety_card(material_code: str, db: AsyncSession = Depends(get_db)
 
 @router.post("/acknowledge")
 async def acknowledge_safety(
-    payload: Dict[str, str],
+    payload: dict[str, str],
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):

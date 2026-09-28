@@ -1,11 +1,12 @@
-import asyncio
-from typing import List, Dict, Any, Set
+from typing import Any
+
 from fastapi import WebSocket
+
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
-        self.channel_subscriptions: Dict[str, Set[WebSocket]] = {}
+        self.active_connections: list[WebSocket] = []
+        self.channel_subscriptions: dict[str, set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, channel: str = "global"):
         await websocket.accept()
@@ -20,7 +21,7 @@ class ConnectionManager:
         if channel in self.channel_subscriptions and websocket in self.channel_subscriptions[channel]:
             self.channel_subscriptions[channel].remove(websocket)
 
-    async def broadcast(self, message: Dict[str, Any], channel: str = "global"):
+    async def broadcast(self, message: dict[str, Any], channel: str = "global"):
         subscribers = self.channel_subscriptions.get(channel, set()).copy()
         dead = []
         for connection in subscribers:

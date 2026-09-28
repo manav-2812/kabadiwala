@@ -1,22 +1,27 @@
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.core.lot_state import validate_transition, LotStatus
+from app.core.lot_state import LotStatus
+from app.db.session import get_db
 from app.models.all_models import (
-    User, Lot, Transaction, Payment, Collector, TraceabilityEvent,
-    Document, PaymentAdjustment
+    Document,
+    Lot,
+    Payment,
+    TraceabilityEvent,
+    Transaction,
+    User,
 )
+from app.routers.auth import get_current_user
 from app.schemas.all_schemas import PaymentInitiateRequest, PaymentResponse
 from app.services.payments import process_simulated_payment
-from app.services.trace import compute_event_hash, GENESIS_HASH
+from app.services.trace import GENESIS_HASH, compute_event_hash
 from app.ws.manager import ws_manager
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -39,7 +44,7 @@ async def initiate_payment(
     tx = res.scalar_one_or_none()
     if not tx:
         raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
-        
+
     lot = tx.lot
     payout_amt = tx.final_amount_paise or tx.agreed_amount_paise
 
@@ -62,7 +67,7 @@ async def initiate_payment(
     if sim_res["status"] == "success":
         lot.status = LotStatus.COMPLETED.value
         tx.status = "completed"
-        
+
         # Credit collector wallet atomically
         col = tx.collector
         if col:
@@ -153,15 +158,15 @@ async def confirm_cash_payment(
     payment = res.scalar_one_or_none()
     if not payment:
         raise KabadiwalaAPIException(status_code=404, code="PAYMENT_NOT_FOUND", message_key="transaction_not_found")
-        
+
     tx = payment.transaction
     lot = tx.lot
-    
+
     payment.method = "cash"
     payment.status = "success"
     payment.upi_ref = f"CASH-{datetime.now(timezone.utc).strftime('%H%M%S')}"
     payment.paid_at = datetime.now(timezone.utc)
-    
+
     lot.status = LotStatus.COMPLETED.value
     tx.status = "completed"
 

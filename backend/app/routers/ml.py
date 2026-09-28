@@ -18,20 +18,20 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from fastapi import APIRouter, Depends, Query, UploadFile, File, Body
+from fastapi import APIRouter, Body, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
 
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.all_models import (
-    Material, MaterialSubcategory, PriceHistory, MLModel, MLPrediction
+    MLModel,
+    MLPrediction,
 )
-from app.services.valuation import valuate_item, compute_rules_valuation
+from app.services.valuation import valuate_item
 
 router = APIRouter(prefix="/ml", tags=["ml"])
 
@@ -42,29 +42,29 @@ router = APIRouter(prefix="/ml", tags=["ml"])
 
 class ValuateItemInput(BaseModel):
     material_code: str
-    sub_category: Optional[str] = None
+    sub_category: str | None = None
     weight_g: int
     condition: str = "broken"
-    source_type: Optional[str] = None
+    source_type: str | None = None
 
 
 class ValuateRequest(BaseModel):
-    items: List[ValuateItemInput]
-    lat: Optional[float] = None
-    lng: Optional[float] = None
+    items: list[ValuateItemInput]
+    lat: float | None = None
+    lng: float | None = None
 
 
 class ClassifyRequest(BaseModel):
-    image_base64: Optional[str] = None
-    filename: Optional[str] = "scrap.jpg"
-    hint_material: Optional[str] = None
+    image_base64: str | None = None
+    filename: str | None = "scrap.jpg"
+    hint_material: str | None = None
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _get_active_model(db: AsyncSession, task: str) -> Optional[MLModel]:
+async def _get_active_model(db: AsyncSession, task: str) -> MLModel | None:
     stmt = (
         select(MLModel)
         .where(MLModel.task == task, MLModel.is_active == True)
@@ -86,7 +86,7 @@ async def _log_prediction(
     output_data: Any,
     confidence: float = 0.0,
     latency_ms: int = 0,
-    model_id: Optional[str] = None,
+    model_id: str | None = None,
 ) -> None:
     """Log prediction to ml_predictions if ML_LOG_PREDICTIONS is enabled."""
     if not settings.ML_LOG_PREDICTIONS:
@@ -135,7 +135,7 @@ DEMO_CLASS_NAMES = {
 
 @router.post("/classify")
 async def classify_scrap_image(
-    payload: Optional[ClassifyRequest] = Body(None),
+    payload: ClassifyRequest | None = Body(None),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -281,7 +281,7 @@ async def predict_scrap_valuation(
 
 @router.get("/models")
 async def list_models(
-    task: Optional[str] = Query(None),
+    task: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     """List active ML models per task with demo_only flag and artifact info."""

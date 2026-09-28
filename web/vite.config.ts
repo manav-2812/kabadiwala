@@ -8,7 +8,7 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
-  /** Injects VITE_FIREBASE_* env vars into the FCM service worker at dev time */
+  /** Injects VITE_FIREBASE_* env vars into the FCM service worker at dev time and build time */
   const fcmSwEnvPlugin = {
     name: 'fcm-sw-env-inject',
     configureServer(server: any) {
@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
             .replace("self.__FIREBASE_AUTH_DOMAIN__ || ''",        `'${env.VITE_FIREBASE_AUTH_DOMAIN || ''}'`)
             .replace("self.__FIREBASE_PROJECT_ID__ || ''",         `'${env.VITE_FIREBASE_PROJECT_ID || ''}'`)
             .replace("self.__FIREBASE_STORAGE_BUCKET__ || ''",     `'${env.VITE_FIREBASE_STORAGE_BUCKET || ''}'`)
-            .replace("self.__FIREBASE_MESSAGING_SENDER_ID__|| ''", `'${env.VITE_FIREBASE_MESSAGING_SENDER_ID || ''}'`)
+            .replace("self.__FIREBASE_MESSAGING_SENDER_ID__ || ''", `'${env.VITE_FIREBASE_MESSAGING_SENDER_ID || ''}'`)
             .replace("self.__FIREBASE_APP_ID__ || ''",             `'${env.VITE_FIREBASE_APP_ID || ''}'`);
           res.setHeader('Content-Type', 'application/javascript');
           res.end(sw);
@@ -30,6 +30,20 @@ export default defineConfig(({ mode }) => {
         }
       });
     },
+    closeBundle() {
+      const distSwPath = path.resolve(process.cwd(), 'dist/firebase-messaging-sw.js');
+      if (fs.existsSync(distSwPath)) {
+        let sw = fs.readFileSync(distSwPath, 'utf-8');
+        sw = sw
+          .replace("self.__FIREBASE_API_KEY__ || ''",             `'${env.VITE_FIREBASE_API_KEY || ''}'`)
+          .replace("self.__FIREBASE_AUTH_DOMAIN__ || ''",        `'${env.VITE_FIREBASE_AUTH_DOMAIN || ''}'`)
+          .replace("self.__FIREBASE_PROJECT_ID__ || ''",         `'${env.VITE_FIREBASE_PROJECT_ID || ''}'`)
+          .replace("self.__FIREBASE_STORAGE_BUCKET__ || ''",     `'${env.VITE_FIREBASE_STORAGE_BUCKET || ''}'`)
+          .replace("self.__FIREBASE_MESSAGING_SENDER_ID__ || ''", `'${env.VITE_FIREBASE_MESSAGING_SENDER_ID || ''}'`)
+          .replace("self.__FIREBASE_APP_ID__ || ''",             `'${env.VITE_FIREBASE_APP_ID || ''}'`);
+        fs.writeFileSync(distSwPath, sw, 'utf-8');
+      }
+    }
   };
 
   return {
@@ -106,6 +120,9 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
               if (id.includes('recharts') || id.includes('d3-')) {
                 return 'vendor-charts';
               }

@@ -1,5 +1,8 @@
 from starlette.testclient import TestClient
 
+from app.main import app
+
+
 def test_get_materials(client: TestClient):
     response = client.get("/api/materials")
     assert response.status_code == 200
@@ -34,12 +37,22 @@ def test_instant_estimate_endpoint(client: TestClient):
 def test_auth_request_and_verify_otp(client: TestClient):
     req_res = client.post("/api/auth/request-otp", json={"phone": "9876543201"})
     assert req_res.status_code == 200
-    
+
     verify_res = client.post("/api/auth/verify-otp", json={"phone": "9876543201", "otp": "123456"})
     assert verify_res.status_code == 200
     token_data = verify_res.json()
     assert "access_token" in token_data
     assert token_data["user"]["role"] == "collector"
+
+def test_request_otp_rate_limiting(client: TestClient):
+    app.state.limiter.enabled = True
+    try:
+        # Rapid requests from the same client trigger rate limiting
+        responses = [client.post("/api/auth/request-otp", json={"phone": "9876543299"}) for _ in range(8)]
+        status_codes = [r.status_code for r in responses]
+        assert 429 in status_codes, f"Expected 429 in rate limit responses, got: {status_codes}"
+    finally:
+        app.state.limiter.enabled = False
 
 def test_admin_kpis_endpoint(client: TestClient):
     response = client.get("/api/dashboard/admin/kpis")

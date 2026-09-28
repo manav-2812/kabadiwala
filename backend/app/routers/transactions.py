@@ -1,44 +1,92 @@
 import json
-import random
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, Optional, List
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.core.lot_state import validate_transition, LotStatus
+from app.core.lot_state import LotStatus, validate_transition
+from app.db.session import get_db
 from app.models.all_models import (
-    User, Lot, LotItem, Transaction, Quote, Recycler, Collector,
-    PickupAgent, PickupTracking, TraceabilityEvent, PaymentAdjustment
+    Collector,
+    Lot,
+    LotItem,
+    Quote,
+    Recycler,
+    TraceabilityEvent,
+    Transaction,
+    User,
 )
-from app.schemas.all_schemas import WeighInRequest, HandoverConfirmRequest, CashHandoverConfirmRequest, DisputeRequest, TrackingPoint
-from app.services.trace import compute_event_hash, GENESIS_HASH
+from app.routers.auth import get_current_user
+from app.schemas.all_schemas import (
+    CashHandoverConfirmRequest,
+    DisputeRequest,
+    HandoverConfirmRequest,
+    TrackingPoint,
+    WeighInRequest,
+)
+from app.services.trace import GENESIS_HASH, compute_event_hash
 from app.ws.manager import ws_manager
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
-@router.get("/{id}")
-async def get_transaction(
-    id: str,
-    db: AsyncSession = Depends(get_db)
-):
-    stmt = (
-        select(Transaction)
-        .where(Transaction.id == id)
-        .options(
-            selectinload(Transaction.lot).selectinload(Lot.items).selectinload(LotItem.material),
-            selectinload(Transaction.quote).selectinload(Quote.recycler),
-            selectinload(Transaction.agent),
-            selectinload(Transaction.collector).selectinload(Collector.user)
-        )
-    )
+async def get_authorized_transaction(
+    tx_id: str,
+    user: User,
+    db: AsyncSession,
+    load_items: bool = False,
+    load_events: bool = False
+) -> Transaction:
+    options = [
+        selectinload(Transaction.lot),
+        selectinload(Transaction.collector).selectinload(Collector.user),
+        selectinload(Transaction.quote).selectinload(Quote.recycler),
+        selectinload(Transaction.agent),
+    ]
+    if load_items:
+        options.append(selectinload(Transaction.lot).selectinload(Lot.items).selectinload(LotItem.material))
+    if load_events:
+        options.append(selectinload(Transaction.lot).selectinload(Lot.trace_events))
+
+    stmt = select(Transaction).where(Transaction.id == tx_id).options(*options)
     res = await db.execute(stmt)
     tx = res.scalar_one_or_none()
     if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
+        raise KabadiwalaAPIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="TRANSACTION_NOT_FOUND",
+            message_key="transaction_not_found"
+        )
+
+    # Enforce IDOR authorization: user must be admin, or owning collector, or counterparty recycler
+    if user.role != "admin":
+        allowed = False
+        if user.role == "collector" and tx.collector and tx.collector.user_id == user.id:
+            allowed = True
+        elif user.role == "recycler" and tx.quote and tx.quote.recycler:
+            rec_res = await db.execute(select(Recycler).where(Recycler.user_id == user.id))
+            rec = rec_res.scalar_one_or_none()
+            if rec and tx.quote.recycler_id == rec.id:
+                allowed = True
+        elif user.role == "aggregator":
+            allowed = True
+        if not allowed:
+            raise KabadiwalaAPIException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="TRANSACTION_NOT_FOUND",
+                message_key="transaction_not_found"
+            )
+    return tx
+
+@router.get("/{id}")
+async def get_transaction(
+    id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    tx = await get_authorized_transaction(id, user, db, load_items=True, load_events=False)
 
     lot = tx.lot
     items_data = []
@@ -93,15 +141,10 @@ async def mark_arrival(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(Transaction).where(Transaction.id == id).options(selectinload(Transaction.lot).selectinload(Lot.trace_events))
-    res = await db.execute(stmt)
-    tx = res.scalar_one_or_none()
-    if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
-        
+    tx = await get_authorized_transaction(id, user, db, load_events=True)
     lot = tx.lot
     validate_transition(lot.status, LotStatus.ARRIVED)
-    
+
     lot.status = LotStatus.ARRIVED.value
     tx.status = "arrived"
 
@@ -135,17 +178,9 @@ async def record_weigh_in(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(Transaction).where(Transaction.id == id).options(
-        selectinload(Transaction.lot).selectinload(Lot.items),
-        selectinload(Transaction.lot).selectinload(Lot.trace_events)
-    )
-    res = await db.execute(stmt)
-    tx = res.scalar_one_or_none()
-    if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
-        
+    tx = await get_authorized_transaction(id, user, db, load_items=True, load_events=True)
     lot = tx.lot
-    
+
     total_est_g = lot.est_total_weight_g or 1
     total_act_g = 0
 
@@ -166,7 +201,7 @@ async def record_weigh_in(
 
     # Recalculate amount based on actual weight
     weight_ratio = total_act_g / float(total_est_g)
-    final_amt = int(round(tx.agreed_amount_paise * weight_ratio))
+    final_amt = round(tx.agreed_amount_paise * weight_ratio)
     tx.final_amount_paise = final_amt
     lot.final_amount_paise = final_amt
 
@@ -227,20 +262,13 @@ async def confirm_handover(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(Transaction).where(Transaction.id == id).options(
-        selectinload(Transaction.lot).selectinload(Lot.trace_events)
-    )
-    res = await db.execute(stmt)
-    tx = res.scalar_one_or_none()
-    if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
-        
+    tx = await get_authorized_transaction(id, user, db, load_events=True)
     lot = tx.lot
-    
+
     # Accept revised or normal weigh-in
     tx.collector_confirmed_at = datetime.now(timezone.utc)
     tx.buyer_confirmed_at = datetime.now(timezone.utc)
-    
+
     lot.status = LotStatus.PAYMENT_PENDING.value
     tx.status = "payment_pending"
 
@@ -274,19 +302,8 @@ async def confirm_cash_handover(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = (
-        select(Transaction)
-        .where(Transaction.id == id)
-        .options(
-            selectinload(Transaction.lot).selectinload(Lot.trace_events),
-            selectinload(Transaction.collector)
-        )
-    )
-    res = await db.execute(stmt)
-    tx = res.scalar_one_or_none()
-    if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
-        
+    tx = await get_authorized_transaction(id, user, db, load_events=True)
+
     lot = tx.lot
     total_due = tx.final_amount_paise or tx.agreed_amount_paise
     now = datetime.now(timezone.utc)
@@ -383,19 +400,8 @@ async def settle_due(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = (
-        select(Transaction)
-        .where(Transaction.id == id)
-        .options(
-            selectinload(Transaction.lot).selectinload(Lot.trace_events),
-            selectinload(Transaction.collector)
-        )
-    )
-    res = await db.execute(stmt)
-    tx = res.scalar_one_or_none()
-    if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
-        
+    tx = await get_authorized_transaction(id, user, db, load_events=True)
+
     if tx.due_status != "pending" or tx.balance_paise <= 0:
         return {"status": "already_settled", "message": "No pending dues for this transaction"}
 
@@ -404,7 +410,7 @@ async def settle_due(
     tx.balance_paise = 0
     tx.due_status = "settled"
     tx.payment_status = "paid"
-    
+
     col = tx.collector
     if col:
         col.total_earned_paise += settled_paise
@@ -449,17 +455,10 @@ async def raise_dispute(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(Transaction).where(Transaction.id == id).options(
-        selectinload(Transaction.lot).selectinload(Lot.trace_events)
-    )
-    res = await db.execute(stmt)
-    tx = res.scalar_one_or_none()
-    if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
-        
+    tx = await get_authorized_transaction(id, user, db, load_events=True)
     lot = tx.lot
     validate_transition(lot.status, LotStatus.DISPUTED)
-    
+
     lot.status = LotStatus.DISPUTED.value
     tx.status = "disputed"
     tx.dispute_reason = data.reason
@@ -490,16 +489,10 @@ async def raise_dispute(
 @router.get("/{id}/tracking", response_model=TrackingPoint)
 async def get_live_tracking(
     id: str,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(Transaction).where(Transaction.id == id).options(
-        selectinload(Transaction.agent),
-        selectinload(Transaction.lot)
-    )
-    res = await db.execute(stmt)
-    tx = res.scalar_one_or_none()
-    if not tx:
-        raise KabadiwalaAPIException(status_code=404, code="TRANSACTION_NOT_FOUND", message_key="transaction_not_found")
+    tx = await get_authorized_transaction(id, user, db)
 
     agent = tx.agent
     dest_lat = float(tx.lot.pickup_lat) if tx.lot else 28.6139
@@ -508,7 +501,7 @@ async def get_live_tracking(
     # Moving coordinates calculation for demo
     now_sec = int(datetime.now(timezone.utc).timestamp()) % 120
     ratio = now_sec / 120.0
-    
+
     start_lat = dest_lat - 0.015
     start_lng = dest_lng - 0.015
     cur_lat = start_lat + (dest_lat - start_lat) * ratio

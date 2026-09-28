@@ -1,11 +1,11 @@
-import io
 import hashlib
-from typing import Optional
-from datetime import datetime
-from reportlab.lib.pagesizes import letter
+import io
+
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
 
 def generate_handover_receipt_pdf(
     receipt_no: str,
@@ -17,7 +17,7 @@ def generate_handover_receipt_pdf(
     items: list,
     agreed_inr: float,
     final_inr: float,
-    upi_ref: Optional[str] = "N/A",
+    upi_ref: str | None = "N/A",
     hash_chain_summary: str = ""
 ) -> tuple[bytes, str]:
     """
@@ -27,7 +27,7 @@ def generate_handover_receipt_pdf(
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
     story = []
-    
+
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'TitleStyle',
@@ -93,7 +93,7 @@ def generate_handover_receipt_pdf(
             Paragraph(f"{item.get('actual_kg', item.get('est_kg', 0)):.2f}", normal_style),
             Paragraph(f"₹{item.get('amount_inr', 0):,.2f}", normal_style),
         ])
-    
+
     items_table = Table(table_rows, colWidths=[30, 180, 80, 80, 80, 90])
     items_table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#E4F4EA')),

@@ -10,24 +10,24 @@ Anything derived from synthetic data is tagged is_demo=true.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
-from sqlalchemy import select, desc
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.all_models import Material, PriceHistory
 
 
-def _moving_average(prices: List[float], n: int) -> Optional[float]:
+def _moving_average(prices: list[float], n: int) -> float | None:
     """Simple moving average of last n values. Returns None if not enough data."""
     if len(prices) < n:
         return None
     return round(sum(prices[-n:]) / n, 2)
 
 
-def _weekly_slope_pct(prices: List[float]) -> Optional[float]:
+def _weekly_slope_pct(prices: list[float]) -> float | None:
     """
     Weekly slope as percentage: (mean of last 7 days - mean of prior 7 days)
     / mean of prior 7 days * 100.
@@ -42,7 +42,7 @@ def _weekly_slope_pct(prices: List[float]) -> Optional[float]:
     return round((recent - prior) / prior * 100, 2)
 
 
-def _arrow(slope: Optional[float]) -> str:
+def _arrow(slope: float | None) -> str:
     """Rising if slope > +3%/week, Falling if < -3%/week, else Steady."""
     if slope is None:
         return "Steady"
@@ -56,8 +56,8 @@ def _arrow(slope: Optional[float]) -> str:
 async def get_price_trends(
     db: AsyncSession,
     material_code: str,
-    city: Optional[str] = None,
-) -> Dict[str, Any]:
+    city: str | None = None,
+) -> dict[str, Any]:
     """
     Returns trend data for a material.
     Forecast returned only if >= ML_FORECAST_MIN_DAYS of real data exist.

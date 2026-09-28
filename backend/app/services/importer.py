@@ -12,28 +12,35 @@ Responsibilities:
 7. Supports retire_synthetic_users() to archive synthetic users as real users are onboarded.
 """
 
-import os
 import csv
-import io
-import uuid
 import hashlib
+import os
+import uuid
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any
 
-from sqlalchemy import select, func, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.all_models import (
-    User, Collector, Recycler, Material, PriceHistory,
-    Transaction, Lot, LotItem, IngestQuarantine, Dataset, DatasetVersion
-)
 from app.core.security import get_password_hash
+from app.models.all_models import (
+    Collector,
+    Dataset,
+    DatasetVersion,
+    IngestQuarantine,
+    Lot,
+    Material,
+    PriceHistory,
+    Transaction,
+    User,
+)
+
 
 async def import_real_data(
     file_path_or_content: str,
-    dataset_type: Optional[str] = None,
-    db: Optional[AsyncSession] = None
-) -> Dict[str, Any]:
+    dataset_type: str | None = None,
+    db: AsyncSession | None = None
+) -> dict[str, Any]:
     """
     Import real field research data from CSV.
     """
@@ -110,7 +117,7 @@ async def import_real_data(
                 lang = "hi"
 
             op_area = row_clean.get("operating_area", "General District")
-            
+
             # Check if user already exists
             existing_col = (await db.execute(select(Collector).where(Collector.collector_code == col_code))).scalar_one_or_none()
             if not existing_col:
@@ -279,7 +286,7 @@ async def import_real_data(
     }
 
 
-async def retire_synthetic_users(user_ids_or_codes: List[str], db: Optional[AsyncSession] = None) -> Dict[str, Any]:
+async def retire_synthetic_users(user_ids_or_codes: list[str], db: AsyncSession | None = None) -> dict[str, Any]:
     """
     Archive/retire synthetic users as real users are onboarded from field research.
     Sets is_active=False and marks deleted_at timestamp.

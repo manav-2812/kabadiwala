@@ -1,7 +1,7 @@
-from typing import Dict, List, Any
+from typing import Any
 
 # Recovery efficiencies: 0.85 for base metals, 0.70 for precious / critical
-EFFICIENCIES: Dict[str, float] = {
+EFFICIENCIES: dict[str, float] = {
     "cu": 0.85, # Copper
     "sn": 0.85, # Tin
     "pb": 0.85, # Lead
@@ -15,7 +15,7 @@ EFFICIENCIES: Dict[str, float] = {
     "nd": 0.70  # Neodymium (rare earth)
 }
 
-ELEMENT_NAMES: Dict[str, Dict[str, str]] = {
+ELEMENT_NAMES: dict[str, dict[str, str]] = {
     "cu": {"name_en": "Copper", "name_hi": "तांबा", "name_pa": "ਤਾਂਬਾ", "strategic": True, "color": "#B87333"},
     "au": {"name_en": "Gold", "name_hi": "सोना", "name_pa": "ਸੋਨਾ", "strategic": True, "color": "#FFD700"},
     "ag": {"name_en": "Silver", "name_hi": "चांदी", "name_pa": "ਚਾਂਦੀ", "strategic": True, "color": "#C0C0C0"},
@@ -29,8 +29,8 @@ ELEMENT_NAMES: Dict[str, Dict[str, str]] = {
 }
 
 def calculate_recoverable_minerals(
-    items_composition: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
+    items_composition: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """
     items_composition: list of dicts with:
       - element: str (e.g. 'cu', 'au', 'co')
@@ -38,17 +38,17 @@ def calculate_recoverable_minerals(
       - grams_per_kg: float
     Returns aggregated recoverable grams per element.
     """
-    totals: Dict[str, float] = {}
-    
+    totals: dict[str, float] = {}
+
     for item in items_composition:
         elem = item["element"].lower()
         w_kg = float(item["weight_kg"])
         g_per_kg = float(item["grams_per_kg"])
         eff = EFFICIENCIES.get(elem, 0.75)
-        
+
         recovered_g = w_kg * g_per_kg * eff
         totals[elem] = totals.get(elem, 0.0) + recovered_g
-        
+
     result = []
     # Sort with strategic critical minerals first
     priority_order = ["cu", "au", "ag", "co", "li", "nd", "pd", "sn", "al", "fe"]
@@ -62,5 +62,5 @@ def calculate_recoverable_minerals(
                 "is_strategic": meta["strategic"],
                 "color_hex": meta["color"]
             })
-            
+
     return result

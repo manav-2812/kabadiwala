@@ -1,6 +1,6 @@
 
 import os
-from typing import List, Optional
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     # §1.3 — no wildcard; production origins come from env var only
     # Dev origins are explicitly listed; add deployed URL via CORS_ORIGINS_EXTRA env var.
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
@@ -67,36 +67,36 @@ class Settings(BaseSettings):
         return self
 
     @property
-    def all_cors_origins(self) -> List[str]:
+    def all_cors_origins(self) -> list[str]:
         """Merged CORS list, including any extra production origins from env."""
         extra = [o.strip() for o in self.CORS_ORIGINS_EXTRA.split() if o.strip()]
         return list(dict.fromkeys(self.CORS_ORIGINS + extra))  # deduplicate, preserve order
 
     # Realistic Seed & Safety Mode (Section 8)
     DEMO_MODE: bool = os.getenv("DEMO_MODE", "true").lower() == "true"
-    SUPPORT_PHONE: Optional[str] = os.getenv("SUPPORT_PHONE", None)
+    SUPPORT_PHONE: str | None = os.getenv("SUPPORT_PHONE", None)
 
     # Real SMS Gateway Configurations
-    FAST2SMS_API_KEY: Optional[str] = os.getenv("FAST2SMS_API_KEY")
-    TWOFACTOR_API_KEY: Optional[str] = os.getenv("TWOFACTOR_API_KEY")
-    TWILIO_ACCOUNT_SID: Optional[str] = os.getenv("TWILIO_ACCOUNT_SID")
-    TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
-    TWILIO_PHONE_NUMBER: Optional[str] = os.getenv("TWILIO_PHONE_NUMBER")
-    MSG91_AUTH_KEY: Optional[str] = os.getenv("MSG91_AUTH_KEY")
-    MSG91_TEMPLATE_ID: Optional[str] = os.getenv("MSG91_TEMPLATE_ID")
+    FAST2SMS_API_KEY: str | None = os.getenv("FAST2SMS_API_KEY")
+    TWOFACTOR_API_KEY: str | None = os.getenv("TWOFACTOR_API_KEY")
+    TWILIO_ACCOUNT_SID: str | None = os.getenv("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN: str | None = os.getenv("TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER: str | None = os.getenv("TWILIO_PHONE_NUMBER")
+    MSG91_AUTH_KEY: str | None = os.getenv("MSG91_AUTH_KEY")
+    MSG91_TEMPLATE_ID: str | None = os.getenv("MSG91_TEMPLATE_ID")
 
     # Firebase Phone Auth — Web API key used to verify ID tokens server-side
-    FIREBASE_WEB_API_KEY: Optional[str] = os.getenv("FIREBASE_WEB_API_KEY")
+    FIREBASE_WEB_API_KEY: str | None = os.getenv("FIREBASE_WEB_API_KEY")
 
     # Firebase Cloud Messaging — Service Account JSON (path or inline JSON string)
-    FIREBASE_SERVICE_ACCOUNT_JSON: Optional[str] = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
 
     # SMTP / Email OTP Configurations
-    SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_HOST: str | None = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
-    SMTP_USER: Optional[str] = os.getenv("SMTP_USER", None)
-    SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD", None)
-    SMTP_FROM: Optional[str] = os.getenv("SMTP_FROM", None)
+    SMTP_USER: str | None = os.getenv("SMTP_USER", None)
+    SMTP_PASSWORD: str | None = os.getenv("SMTP_PASSWORD", None)
+    SMTP_FROM: str | None = os.getenv("SMTP_FROM", None)
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "true").lower() == "true"
 
     # ───────────────────────────────────────────────────────────────────────

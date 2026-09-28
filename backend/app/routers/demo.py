@@ -1,13 +1,13 @@
 import json
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.session import get_db
-from app.models.all_models import Lot, TraceabilityEvent, Transaction
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db.seed import seed_database
-from app.services.trace import compute_event_hash, GENESIS_HASH
+from app.db.session import get_db
+from app.models.all_models import Lot, TraceabilityEvent
+from app.services.trace import GENESIS_HASH, compute_event_hash
 from app.ws.manager import ws_manager
 
 router = APIRouter(prefix="/demo", tags=["demo"])
@@ -18,7 +18,7 @@ async def demo_reset():
     return {"status": "success", "message": "Database reset and seeded with full demo scenario."}
 
 @router.post("/tamper")
-async def demo_tamper(payload: Optional[Dict[str, str]] = None, db: AsyncSession = Depends(get_db)):
+async def demo_tamper(payload: dict[str, str] | None = None, db: AsyncSession = Depends(get_db)):
     lot_code = payload.get("lot_code", "KC-LOT-0001") if payload else "KC-LOT-0001"
     stmt = select(Lot).where(Lot.lot_code == lot_code)
     res = await db.execute(stmt)
@@ -31,12 +31,12 @@ async def demo_tamper(payload: Optional[Dict[str, str]] = None, db: AsyncSession
     stmt_ev = select(TraceabilityEvent).where(TraceabilityEvent.lot_id == lot.id).order_by(TraceabilityEvent.seq.asc())
     res_ev = await db.execute(stmt_ev)
     events = res_ev.scalars().all()
-    
+
     if len(events) >= 2:
         target_ev = events[1]
         target_ev.event_hash = "deadbeef" + target_ev.event_hash[8:]
         await db.commit()
-        
+
     return {
         "status": "tampered",
         "lot_code": lot.lot_code,
@@ -45,7 +45,7 @@ async def demo_tamper(payload: Optional[Dict[str, str]] = None, db: AsyncSession
     }
 
 @router.post("/repair")
-async def demo_repair(payload: Optional[Dict[str, str]] = None, db: AsyncSession = Depends(get_db)):
+async def demo_repair(payload: dict[str, str] | None = None, db: AsyncSession = Depends(get_db)):
     lot_code = payload.get("lot_code", "KC-LOT-0001") if payload else "KC-LOT-0001"
     stmt = select(Lot).where(Lot.lot_code == lot_code)
     res = await db.execute(stmt)

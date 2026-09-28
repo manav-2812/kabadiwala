@@ -13,8 +13,8 @@ Reference implementation pattern: wallet.py (correctly owner-scoped).
 """
 
 import pytest
-import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 
 
@@ -170,3 +170,110 @@ async def test_lot_list_collector_only_shows_own_lots():
             f"Collector B's lot list contains Collector A's lot ID {lot_id_a}! "
             f"B's lots: {b_lot_ids}"
         )
+
+
+@pytest.mark.asyncio
+async def test_collector_cannot_read_other_collectors_transaction():
+    """
+    §1.8: GET /api/transactions/{id} must return 404 for an unauthorized user.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        token_b = await _get_token(ac, "9800000018")
+        # Querying with a non-existent or other user's transaction ID must return 404
+        res = await ac.get(
+            "/api/transactions/random-other-user-tx-id",
+            headers={"Authorization": f"Bearer {token_b}"}
+        )
+        assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_collector_cannot_read_or_message_other_users_support_ticket():
+    """
+    §1.8: GET /api/support/tickets/{id} and POST /api/support/tickets/{id}/messages
+    must return 404 for user B trying to access user A's ticket.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        token_a = await _get_token(ac, "9800000019")
+        token_b = await _get_token(ac, "9800000020")
+
+        # User A creates a ticket
+        res_tkt = await ac.post(
+            "/api/support/tickets",
+            json={
+                "category": "pricing",
+                "message": "Need help with price dispute",
+                "language": "en"
+            },
+            headers={"Authorization": f"Bearer {token_a}"}
+        )
+        assert res_tkt.status_code == 200
+        ticket_id = res_tkt.json()["id"]
+
+        # User B tries to read User A's ticket -> 404
+        res_read = await ac.get(
+            f"/api/support/tickets/{ticket_id}",
+            headers={"Authorization": f"Bearer {token_b}"}
+        )
+        assert res_read.status_code == 404
+
+        # User B tries to append message to User A's ticket -> 404
+        res_msg = await ac.post(
+            f"/api/support/tickets/{ticket_id}/messages",
+            json={"body": "Hacked message from user B"},
+            headers={"Authorization": f"Bearer {token_b}"}
+        )
+        assert res_msg.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_collector_cannot_read_other_collectors_trace():
+    """
+    §1.8: GET /api/lots/{lot_id}/trace must return 404 for an unrelated collector.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        token_a = await _get_token(ac, "9800000021")
+        token_b = await _get_token(ac, "9800000022")
+
+        lot_id_a = await _create_lot(ac, token_a)
+
+        # User B tries to read trace for lot A
+        res_trace = await ac.get(
+            f"/api/lots/{lot_id_a}/trace",
+            headers={"Authorization": f"Bearer {token_b}"}
+        )
+        assert res_trace.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_collector_cannot_delete_other_collectors_basket_item():
+    """
+    §1.8: DELETE /api/basket/items/{id} must return 404 if item belongs to another collector.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        token_a = await _get_token(ac, "9800000023")
+        token_b = await _get_token(ac, "9800000024")
+
+        # Get valid material ID
+        mats = await ac.get("/api/materials")
+        mat_id = mats.json()[0]["id"] if mats.json() else "pcb-id"
+
+        # User A adds item to basket
+        res_item = await ac.post(
+            "/api/basket/items",
+            json={
+                "material_id": mat_id,
+                "est_weight_g": 1200,
+                "condition": "working"
+            },
+            headers={"Authorization": f"Bearer {token_a}"}
+        )
+        assert res_item.status_code == 200
+        item_id = res_item.json()["item_id"]
+
+        # User B tries to delete User A's basket item -> 404
+        res_del = await ac.delete(
+            f"/api/basket/items/{item_id}",
+            headers={"Authorization": f"Bearer {token_b}"}
+        )
+        assert res_del.status_code == 404

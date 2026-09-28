@@ -1,0 +1,14 @@
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # Line length handled by formatter
+    "E711",  # Comparison to None (SQLAlchemy expressions)
+    "E712",  # Comparison to True/False (SQLAlchemy expressions)
+    "E741",  # Ambiguous variable name (e.g. l for lot)
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]

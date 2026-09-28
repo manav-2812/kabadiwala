@@ -16,21 +16,19 @@ Golden test vectors: ml/golden/valuation_golden.json
 """
 from __future__ import annotations
 
-import json
-import hashlib
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.all_models import PriceHistory, Material, Transaction
+from app.models.all_models import Material, PriceHistory, Transaction
 
 # ---------------------------------------------------------------------------
 # Condition factors -- must stay in sync with valuation.ts
 # ---------------------------------------------------------------------------
-CONDITION_FACTORS: Dict[str, float] = {
+CONDITION_FACTORS: dict[str, float] = {
     "working":   1.10,
     "broken":    1.00,
     "burnt":     0.70,
@@ -49,7 +47,7 @@ def compute_rules_valuation(
     base_paise_per_kg: int,
     weight_g: int,
     condition: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Pure deterministic Layer-1 rule computation.
     No DB access -- safe to call from the TS-parity tests.
@@ -72,12 +70,12 @@ async def valuate_item(
     *,
     db: AsyncSession,
     material_code: str,
-    sub_category: Optional[str],
+    sub_category: str | None,
     weight_g: int,
     condition: str,
-    lat: Optional[float] = None,
-    lng: Optional[float] = None,
-) -> Dict[str, Any]:
+    lat: float | None = None,
+    lng: float | None = None,
+) -> dict[str, Any]:
     """
     Returns valuation with real basis metadata (n_recent_sales from DB).
     Delegates to Layer-2 when the data gate is met (not yet implemented --

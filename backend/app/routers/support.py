@@ -1,23 +1,29 @@
-import random
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends, Query, status
+import secrets
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.models.all_models import User, SupportTicket, TicketMessage, FAQ, Lot
+from app.core.rbac import require_role
+from app.db.session import get_db
+from app.models.all_models import FAQ, SupportTicket, TicketMessage, User
+from app.routers.auth import get_current_user
 from app.schemas.all_schemas import (
-    TicketCreate, SupportTicketResponse, MessageCreate,
-    TicketMessageResponse, FAQResponse
+    FAQResponse,
+    MessageCreate,
+    SupportTicketResponse,
+    TicketCreate,
+    TicketMessageResponse,
 )
 from app.services.support_bot import generate_bot_reply
 
 router = APIRouter(tags=["support"])
 
-@router.get("/support/tickets", response_model=List[SupportTicketResponse])
+@router.get("/support/tickets", response_model=list[SupportTicketResponse])
 async def get_my_tickets(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -46,7 +52,7 @@ async def get_my_tickets(
                 created_at=m.created_at
             ) for m in t.messages
         ]
-        
+
         breached = (t.status == "open" and t.first_response_due_at < now)
         result.append(SupportTicketResponse(
             id=t.id,
@@ -71,9 +77,9 @@ async def create_ticket(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    t_no = f"KC-TKT-{random.randint(1000, 9999)}"
+    t_no = f"KC-TKT-{secrets.randbelow(9000) + 1000}"
     now = datetime.now(timezone.utc)
-    
+
     ticket = SupportTicket(
         ticket_no=t_no,
         user_id=user.id,
@@ -114,7 +120,7 @@ async def create_ticket(
     ticket.first_responded_at = now
 
     await db.commit()
-    
+
     # Reload ticket
     stmt = select(SupportTicket).where(SupportTicket.id == ticket.id).options(selectinload(SupportTicket.messages))
     res = await db.execute(stmt)
@@ -145,6 +151,52 @@ async def create_ticket(
         ]
     )
 
+@router.get("/support/tickets/{id}", response_model=SupportTicketResponse)
+async def get_ticket_detail(
+    id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = (
+        select(SupportTicket)
+        .where(SupportTicket.id == id)
+        .options(selectinload(SupportTicket.messages))
+    )
+    res = await db.execute(stmt)
+    t = res.scalar_one_or_none()
+    if not t or (user.role != "admin" and t.user_id != user.id):
+        raise KabadiwalaAPIException(status_code=404, code="TICKET_NOT_FOUND", message_key="lot_not_found")
+
+    now = datetime.now(timezone.utc)
+    msg_list = [
+        TicketMessageResponse(
+            id=m.id,
+            sender_type=m.sender_type,
+            sender_name="You" if m.sender_type == "user" else "Support Assistant",
+            body=m.body,
+            attachment_url=m.attachment_url,
+            attachment_type=m.attachment_type,
+            duration_s=m.duration_s,
+            created_at=m.created_at
+        ) for m in t.messages
+    ]
+    breached = (t.status == "open" and t.first_response_due_at < now)
+    return SupportTicketResponse(
+        id=t.id,
+        ticket_no=t.ticket_no,
+        category=t.category,
+        priority=t.priority,
+        status=t.status,
+        lot_id=t.lot_id,
+        language=t.language,
+        first_response_due_at=t.first_response_due_at,
+        resolution_due_at=t.resolution_due_at,
+        first_responded_at=t.first_responded_at,
+        resolved_at=t.resolved_at,
+        is_sla_breached=breached,
+        messages=msg_list
+    )
+
 @router.post("/support/tickets/{id}/messages")
 async def send_ticket_message(
     id: str,
@@ -155,9 +207,9 @@ async def send_ticket_message(
     stmt = select(SupportTicket).where(SupportTicket.id == id)
     res = await db.execute(stmt)
     ticket = res.scalar_one_or_none()
-    if not ticket:
+    if not ticket or (user.role != "admin" and ticket.user_id != user.id):
         raise KabadiwalaAPIException(status_code=404, code="TICKET_NOT_FOUND", message_key="lot_not_found")
-        
+
     msg = TicketMessage(
         ticket_id=ticket.id,
         sender_user_id=user.id,
@@ -171,12 +223,12 @@ async def send_ticket_message(
     await db.commit()
     return {"status": "success", "message_id": msg.id}
 
-@router.get("/support/faqs", response_model=List[FAQResponse])
+@router.get("/support/faqs", response_model=list[FAQResponse])
 async def get_faqs(lang: str = Query("hi"), db: AsyncSession = Depends(get_db)):
     stmt = select(FAQ).where(FAQ.is_active == True).order_by(FAQ.sort_order)
     res = await db.execute(stmt)
     faqs = res.scalars().all()
-    
+
     output = []
     for f in faqs:
         q = f.question_mr if (lang == "mr" and f.question_mr) else (f.question_hi if lang == "hi" else (f.question_pa if lang == "pa" else f.question_en))
@@ -191,7 +243,10 @@ async def get_faqs(lang: str = Query("hi"), db: AsyncSession = Depends(get_db)):
     return output
 
 @router.get("/admin/support/queue")
-async def get_admin_support_queue(db: AsyncSession = Depends(get_db)):
+async def get_admin_support_queue(
+    user: User = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db)
+):
     stmt = (
         select(SupportTicket)
         .options(selectinload(SupportTicket.user), selectinload(SupportTicket.messages))
@@ -200,7 +255,7 @@ async def get_admin_support_queue(db: AsyncSession = Depends(get_db)):
     res = await db.execute(stmt)
     tickets = res.scalars().all()
     now = datetime.now(timezone.utc)
-    
+
     queue = []
     for t in tickets:
         u_name = t.user.name if t.user else "User"
@@ -224,7 +279,8 @@ async def get_admin_support_queue(db: AsyncSession = Depends(get_db)):
 @router.patch("/admin/support/tickets/{id}")
 async def update_ticket_status(
     id: str,
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
+    user: User = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(SupportTicket).where(SupportTicket.id == id)
@@ -232,13 +288,13 @@ async def update_ticket_status(
     ticket = res.scalar_one_or_none()
     if not ticket:
         raise KabadiwalaAPIException(status_code=404, code="TICKET_NOT_FOUND", message_key="lot_not_found")
-        
+
     if "status" in payload:
         ticket.status = payload["status"]
         if payload["status"] in ["resolved", "closed"]:
             ticket.resolved_at = datetime.now(timezone.utc)
     if "priority" in payload:
         ticket.priority = payload["priority"]
-        
+
     await db.commit()
     return {"status": "success", "ticket_id": ticket.id, "ticket_status": ticket.status}

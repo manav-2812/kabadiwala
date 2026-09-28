@@ -12,7 +12,7 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Any
+from typing import Any
 
 from jose import jwt
 
@@ -46,7 +46,7 @@ verify_password = verify_otp_hash
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
 
-def create_access_token(subject: str | Any, role: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(subject: str | Any, role: str, expires_delta: timedelta | None = None) -> str:
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
@@ -62,7 +62,7 @@ def create_access_token(subject: str | Any, role: str, expires_delta: Optional[t
 
 # ── Cryptographically-secure reference-number generators ─────────────────────
 
-def generate_receipt_no(year: Optional[int] = None) -> str:
+def generate_receipt_no(year: int | None = None) -> str:
     """§1.5, §1.8 — uses secrets, not random.randint."""
     y = year or datetime.now(timezone.utc).year
     token = secrets.token_hex(3).upper()  # 6 hex chars → ~16M values

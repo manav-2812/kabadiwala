@@ -18,17 +18,17 @@ Usage:
 """
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.i18n import KabadiwalaAPIException
 from app.db.session import get_db
+
 # Imported lazily to avoid circular imports at module level
-from app.models.all_models import User, Collector, Recycler
+from app.models.all_models import Collector, Recycler, User
 
 # Re-export get_current_user so callers only need to import from this module
-from app.routers.auth import get_current_user  # noqa: F401
-
+from app.routers.auth import get_current_user
 
 ALLOWED_SIGNUP_ROLES = frozenset({"collector", "recycler", "aggregator"})
 

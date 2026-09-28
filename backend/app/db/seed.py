@@ -2,24 +2,42 @@ import asyncio
 import hashlib
 import json
 import random
-import string
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from sqlalchemy import select
-from app.db.base import Base
-from app.db.session import engine, async_session_maker
-from app.models.all_models import (
-    User, Collector, Aggregator, Recycler, Material, MaterialComposition,
-    PriceHistory, Lot, LotItem, LotPhoto, Quote, Transaction, Payment,
-    TraceabilityEvent, Rating, SafetyAcknowledgement, Notification,
-    PickupSchedule, PickupAgent, PickupTracking, Cancellation,
-    PaymentAdjustment, Document, SupportTicket, TicketMessage, FAQ,
-    NotificationTemplate, PriceAlert, MaterialSubcategory, RecyclerRate,
-    AnomalyFlag, MLModel, MLPrediction, MatchingWeight, Dataset, DatasetVersion
-)
+
 from app.core.security import get_password_hash
-from app.services.trace import compute_event_hash, GENESIS_HASH
+from app.db.base import Base
+from app.db.session import async_session_maker, engine
+from app.models.all_models import (
+    FAQ,
+    Aggregator,
+    AnomalyFlag,
+    Collector,
+    Dataset,
+    DatasetVersion,
+    Document,
+    Lot,
+    LotItem,
+    LotPhoto,
+    MatchingWeight,
+    Material,
+    MaterialComposition,
+    MaterialSubcategory,
+    MLModel,
+    Notification,
+    NotificationTemplate,
+    Payment,
+    PickupAgent,
+    PriceHistory,
+    Quote,
+    Recycler,
+    RecyclerRate,
+    TraceabilityEvent,
+    Transaction,
+    User,
+)
+from app.services.trace import GENESIS_HASH, compute_event_hash
 
 CITIES = [
     {"city": "Delhi NCR", "state": "Delhi", "lat": 28.6139, "lng": 77.2090},
@@ -321,12 +339,12 @@ NOTIFICATION_TEMPLATES_SEED = [
 
 async def seed_database():
     print("Starting Kabadiwala Connect database reset and deterministic seeding...")
-    
+
     # Recreate tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-        
+
     async with async_session_maker() as db:
         # 1. Admin User
         admin_user = User(
@@ -405,7 +423,7 @@ async def seed_database():
         for d in range(91):
             cur_date = base_date + timedelta(days=d)
             date_str = cur_date.isoformat()
-            
+
             for code, mat in material_map.items():
                 base_p = mat.base_price_paise_per_kg
                 noise = random.randint(-400, 400)
@@ -417,7 +435,7 @@ async def seed_database():
                     p = base_p - dip + noise
                 else:
                     p = base_p + noise
-                    
+
                 ph = PriceHistory(
                     material_id=mat.id,
                     city=None, # National
@@ -598,7 +616,7 @@ async def seed_database():
             col = collector_objects[(lot_i - 1) % len(collector_objects)]
             status = statuses[lot_i - 1]
             lot_code = f"KC-LOT-{lot_i:04d}"
-            
+
             lot = Lot(
                 collector_id=col.id,
                 lot_code=lot_code,
@@ -617,7 +635,7 @@ async def seed_database():
             total_min = 0
             total_max = 0
             total_wt_g = 0
-            
+
             for item_idx in range(num_items):
                 mat_k = mat_keys[(lot_i + item_idx) % len(mat_keys)]
                 mat = material_map[mat_k]
@@ -625,7 +643,7 @@ async def seed_database():
                 wt_g = int(wt_kg * 1000)
                 cond = random.choice(["working", "broken", "burnt"])
                 cond_factor = 1.1 if cond == "working" else (0.7 if cond == "burnt" else 1.0)
-                
+
                 min_p = int(round(mat.base_price_paise_per_kg * 0.9 * wt_kg * cond_factor))
                 max_p = int(round(mat.base_price_paise_per_kg * 1.1 * wt_kg * cond_factor))
                 total_min += min_p
@@ -650,8 +668,8 @@ async def seed_database():
                 # Add 1 photo
                 photo = LotPhoto(
                     lot_item_id=item.id,
-                    storage_url=f"https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400",
-                    thumb_url=f"https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=100",
+                    storage_url="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400",
+                    thumb_url="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=100",
                     size_bytes=142000,
                     sha256=hashlib.sha256(f"seed-photo-{lot_code}-{item_idx}".encode()).hexdigest(),
                     phash="a1b2c3d4e5f60718",
@@ -666,7 +684,7 @@ async def seed_database():
             # Build Quote and Handover Transaction if applicable
             rec = recycler_objects[(lot_i) % len(recycler_objects)]
             agreed_amt = int((total_min + total_max) / 2)
-            
+
             if status in ["quoted", "accepted", "pickup_scheduled", "in_transit", "arrived", "weighed", "completed", "disputed"]:
                 q = Quote(
                     lot_id=lot.id,
@@ -684,16 +702,16 @@ async def seed_database():
                 if status != "quoted":
                     rct_no = f"KC-RCT-2026-{lot_i:05d}"
                     agent = agent_objects[lot_i % len(agent_objects)]
-                    
+
                     # Cash-first configuration
                     is_cash = True if lot_i % 3 != 0 else False
                     is_partial_due = (lot_i == 1) # First lot has active pending due for demo!
-                    
+
                     p_status = "partial" if is_partial_due else ("paid" if status == "completed" else "unpaid")
                     adv_p = (agreed_amt // 2) if is_partial_due else (agreed_amt if status == "completed" else 0)
                     bal_p = (agreed_amt - adv_p) if is_partial_due else 0
                     due_st = "pending" if is_partial_due else "cleared"
-                    
+
                     tx = Transaction(
                         lot_id=lot.id,
                         quote_id=q.id,
@@ -753,7 +771,7 @@ async def seed_database():
                             retry_count=0
                         )
                         db.add(pay)
-                        
+
                         # Add Document
                         doc_rec = Document(
                             type="receipt",
@@ -791,7 +809,7 @@ async def seed_database():
                     payload=payload,
                     occurred_at=ev_time
                 )
-                
+
                 # If lot_i == 10 and s_idx == 3: deliberately corrupt event_hash for the tamper demo test lot!
                 if lot_i == 10 and s_idx == 3:
                     ev_hash = "deadbeef" + ev_hash[8:]

@@ -7,19 +7,17 @@ GET /recyclers/nearby -- ranked list with 6-weight score, reason codes,
 """
 from __future__ import annotations
 
-import json
 import hashlib
-from typing import List, Optional
+import json
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 
-from app.db.session import get_db
-from app.models.all_models import Recycler, Lot, MatchingWeight, MLPrediction
-from app.schemas.all_schemas import RecyclerMatchItem
-from app.services.matching import rank_recyclers_for_lot, DEFAULT_WEIGHTS
 from app.core.config import settings
+from app.db.session import get_db
+from app.models.all_models import Lot, MatchingWeight, MLPrediction, Recycler
+from app.services.matching import DEFAULT_WEIGHTS, rank_recyclers_for_lot
 
 router = APIRouter(prefix="/recyclers", tags=["recyclers"])
 
@@ -47,7 +45,7 @@ async def _load_active_weights(db: AsyncSession):
 async def get_nearby_recyclers(
     lat: float = Query(28.6139),
     lng: float = Query(77.2090),
-    lot_id: Optional[str] = None,
+    lot_id: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """

@@ -1,6 +1,8 @@
 import pytest
-from app.core.lot_state import validate_transition, LotStatus, get_allowed_next_states
+
 from app.core.i18n import KabadiwalaAPIException
+from app.core.lot_state import LotStatus, get_allowed_next_states, validate_transition
+
 
 def test_valid_forward_transitions():
     assert validate_transition(LotStatus.DRAFT, LotStatus.LISTED) is True

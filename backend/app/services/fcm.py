@@ -22,14 +22,15 @@ Setup:
 """
 import json
 import logging
+
 import httpx
-from typing import Optional
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Cache the access token to avoid fetching on every send
-_cached_access_token: Optional[str] = None
+_cached_access_token: str | None = None
 
 
 def _is_fcm_configured() -> bool:
@@ -37,7 +38,7 @@ def _is_fcm_configured() -> bool:
     return bool(sa_json)
 
 
-def _load_service_account() -> Optional[dict]:
+def _load_service_account() -> dict | None:
     sa_json = getattr(settings, "FIREBASE_SERVICE_ACCOUNT_JSON", None)
     if not sa_json:
         return None
@@ -53,7 +54,7 @@ def _load_service_account() -> Optional[dict]:
         return None
 
 
-async def _get_oauth_token() -> Optional[str]:
+async def _get_oauth_token() -> str | None:
     """Exchange service account credentials for a short-lived OAuth2 token."""
     global _cached_access_token
     if _cached_access_token:
@@ -64,8 +65,9 @@ async def _get_oauth_token() -> Optional[str]:
         return None
 
     try:
-        import jwt as pyjwt
         import time
+
+        import jwt as pyjwt
 
         now = int(time.time())
         claim = {
@@ -101,7 +103,7 @@ async def send_fcm_notification(
     fcm_token: str,
     title: str,
     body: str,
-    data: Optional[dict] = None,
+    data: dict | None = None,
     url: str = "/",
 ) -> dict:
     """
@@ -168,7 +170,7 @@ async def send_fcm_to_user_tokens(
     fcm_tokens: list[str],
     title: str,
     body: str,
-    data: Optional[dict] = None,
+    data: dict | None = None,
     url: str = "/",
 ) -> list[dict]:
     """Send FCM to multiple device tokens belonging to one user."""

@@ -19,15 +19,17 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.models.all_models import (
-    AnomalyFlag, Transaction, LotPhoto, PriceHistory, Material
+    AnomalyFlag,
+    LotPhoto,
+    Material,
+    PriceHistory,
+    Transaction,
 )
 
 # ---------------------------------------------------------------------------
@@ -86,25 +88,25 @@ async def run_anomaly_rules(
     final_price_per_kg_paise: float,
     material_code: str,
     city: str,
-    quote_per_kg_paise: Optional[float],
-    payment_at: Optional[datetime],
-    weigh_in_at: Optional[datetime],
+    quote_per_kg_paise: float | None,
+    payment_at: datetime | None,
+    weigh_in_at: datetime | None,
     collector_id: str,
-    photo_phash: Optional[str],
+    photo_phash: str | None,
     lot_id: str,
-    handover_lat: Optional[float],
-    handover_lng: Optional[float],
-    recycler_lat: Optional[float],
-    recycler_lng: Optional[float],
-    collect_lat: Optional[float],
-    collect_lng: Optional[float],
-) -> List[AnomalyFlag]:
+    handover_lat: float | None,
+    handover_lng: float | None,
+    recycler_lat: float | None,
+    recycler_lng: float | None,
+    collect_lat: float | None,
+    collect_lng: float | None,
+) -> list[AnomalyFlag]:
     """
     Synchronous rule engine called after weigh-in.
     Returns a list of AnomalyFlag ORM objects (not yet committed).
     Caller must db.add() and db.commit() them.
     """
-    flags: List[AnomalyFlag] = []
+    flags: list[AnomalyFlag] = []
 
     def _flag(code: str, severity: str, reason: str, score: float = 0.5) -> AnomalyFlag:
         return AnomalyFlag(

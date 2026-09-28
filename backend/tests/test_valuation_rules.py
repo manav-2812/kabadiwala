@@ -1,6 +1,8 @@
-import os
 import json
+import os
+
 import pytest
+
 from app.services.valuation import compute_rules_valuation
 
 GOLDEN_PATH = os.path.join(

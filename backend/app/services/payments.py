@@ -1,7 +1,8 @@
 import secrets
 import string
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Any
+
 
 def generate_upi_ref() -> str:
     """§1.5 — cryptographically-secure UPI reference."""
@@ -11,7 +12,7 @@ def process_simulated_payment(
     amount_paise: int,
     method: str = "upi",
     force_failure: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Simulates UPI or Cash payment transaction.
     Atomic with wallet credit and transaction status change.
@@ -24,7 +25,7 @@ def process_simulated_payment(
             "paid_at": None,
             "platform_fee_paise": 0
         }
-        
+
     ref = generate_upi_ref() if method == "upi" else f"CASH-{digits_only(8)}"
     return {
         "status": "success",

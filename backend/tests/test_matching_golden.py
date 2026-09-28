@@ -11,8 +11,9 @@ and the existing ml/golden/matching_golden.json as a regression golden file.
 
 import json
 import os
+from datetime import datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
 
 from app.services.matching import rank_recyclers_for_lot
 

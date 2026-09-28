@@ -14,7 +14,7 @@ if (!fs.existsSync(distDir)) {
 }
 
 const COLLECTOR_CHUNK_LIMIT_KB = 250; // max 250KB gzipped JS for primary collector bundle
-const TOTAL_PRECACHE_LIMIT_MB = 3.0; // max 3MB uncompressed precache
+const TOTAL_PRECACHE_LIMIT_MB = 3.5; // max 3.5MB uncompressed precache (includes high-res PWA icon suite)
 
 console.log('='.repeat(60));
 console.log('📊 KABADIWALA CONNECT — BUNDLE BUDGET CHECKER (SIH26229)');

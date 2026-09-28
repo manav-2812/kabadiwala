@@ -1,13 +1,21 @@
-from typing import List, Optional
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Response, status
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.models.all_models import Document, Transaction, Lot, LotItem, Recycler, Collector, User, Quote
+from app.db.session import get_db
+from app.models.all_models import (
+    Collector,
+    Document,
+    Lot,
+    LotItem,
+    Quote,
+    Recycler,
+    Transaction,
+    User,
+)
+from app.routers.auth import get_current_user
 from app.services.receipt import generate_handover_receipt_pdf
 from app.services.trace import verify_event_chain
 
@@ -15,11 +23,28 @@ router = APIRouter(tags=["documents"])
 
 @router.get("/documents")
 async def get_documents(
-    type: Optional[str] = None,
+    type: str | None = None,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Document).order_by(desc(Document.generated_at))
+    if user.role == "collector":
+        col_res = await db.execute(select(Collector).where(Collector.user_id == user.id))
+        col = col_res.scalar_one_or_none()
+        if not col:
+            return []
+        lot_ids_subq = select(Lot.id).where(Lot.collector_id == col.id)
+        stmt = stmt.where(Document.lot_id.in_(lot_ids_subq))
+    elif user.role == "recycler":
+        rec_res = await db.execute(select(Recycler).where(Recycler.user_id == user.id))
+        rec = rec_res.scalar_one_or_none()
+        if not rec:
+            return []
+        tx_ids_subq = select(Transaction.id).join(Quote, Transaction.quote_id == Quote.id).where(Quote.recycler_id == rec.id)
+        stmt = stmt.where(Document.transaction_id.in_(tx_ids_subq))
+    elif user.role != "admin":
+        return []
+
     if type:
         stmt = stmt.where(Document.type == type)
     res = await db.execute(stmt)
@@ -39,6 +64,7 @@ async def get_documents(
 @router.get("/documents/{number}/pdf")
 async def download_document_pdf(
     number: str,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     # Find transaction by receipt_no
@@ -55,32 +81,37 @@ async def download_document_pdf(
     )
     res = await db.execute(stmt)
     tx = res.scalar_one_or_none()
-    
+
     if not tx:
-        # Generate generic demo receipt
-        pdf_bytes, sha = generate_handover_receipt_pdf(
-            receipt_no=number,
-            lot_code="KC-LOT-0001",
-            date_str=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-            collector_name="Ramesh Kumar",
-            buyer_name="EcoBirba Circular Recyclers",
-            buyer_license="CPCB/E-WASTE/DL/2023/042",
-            items=[{"name": "Circuit Boards (PCB)", "condition": "broken", "est_kg": 5.0, "actual_kg": 5.2, "amount_inr": 2184.0}],
-            agreed_inr=2100.0,
-            final_inr=2184.0,
-            upi_ref="KCUPI9918237412",
-            hash_chain_summary="6a84f329987dae0114bc5012f94ca23"
+        raise KabadiwalaAPIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="DOCUMENT_NOT_FOUND",
+            message_key="lot_not_found"
         )
-        return Response(content=pdf_bytes, media_type="application/pdf", headers={
-            "Content-Disposition": f"inline; filename={number}.pdf"
-        })
+
+    # Enforce IDOR authorization: user must be admin, or owning collector, or counterparty recycler
+    if user.role != "admin":
+        allowed = False
+        if user.role == "collector" and tx.collector and tx.collector.user_id == user.id:
+            allowed = True
+        elif user.role == "recycler" and tx.quote and tx.quote.recycler:
+            rec_res = await db.execute(select(Recycler).where(Recycler.user_id == user.id))
+            rec = rec_res.scalar_one_or_none()
+            if rec and tx.quote.recycler_id == rec.id:
+                allowed = True
+        if not allowed:
+            raise KabadiwalaAPIException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="DOCUMENT_NOT_FOUND",
+                message_key="lot_not_found"
+            )
 
     lot = tx.lot
     col_name = tx.collector.user.name if tx.collector and tx.collector.user else "Collector"
     buyer = tx.quote.recycler if tx.quote else None
     buyer_name = buyer.company_name if buyer else "Authorized Recycler"
     buyer_lic = buyer.cpcb_license_no if buyer else "CPCB-REG-2024"
-    
+
     items_list = []
     for i in lot.items:
         items_list.append({

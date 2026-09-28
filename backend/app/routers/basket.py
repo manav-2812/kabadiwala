@@ -1,17 +1,31 @@
-from typing import List, Dict, Any
+import json
 from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.models.all_models import User, Collector, Lot, LotItem, LotPhoto, Material, TraceabilityEvent
-from app.schemas.all_schemas import BasketResponse, LotItemResponse, BasketItemRequest, MineralChip
-from app.services.price_engine import calculate_item_estimate
+from app.db.session import get_db
+from app.models.all_models import (
+    Collector,
+    Lot,
+    LotItem,
+    Material,
+    TraceabilityEvent,
+    User,
+)
+from app.routers.auth import get_current_user
+from app.schemas.all_schemas import (
+    BasketItemRequest,
+    BasketResponse,
+    LotItemResponse,
+    MineralChip,
+)
 from app.services.minerals import calculate_recoverable_minerals
-from app.services.trace import compute_event_hash, GENESIS_HASH
+from app.services.price_engine import calculate_item_estimate
+from app.services.trace import GENESIS_HASH, compute_event_hash
 
 router = APIRouter(prefix="/basket", tags=["basket"])
 
@@ -20,9 +34,16 @@ async def get_or_create_draft_lot(user: User, db: AsyncSession) -> Lot:
     res_c = await db.execute(stmt_c)
     col = res_c.scalar_one_or_none()
     if not col:
-        stmt_c = select(Collector)
-        res_c = await db.execute(stmt_c)
-        col = res_c.scalars().first()
+        col = Collector(
+            user_id=user.id,
+            city="Delhi NCR",
+            state="Delhi",
+            lat=28.6139,
+            lng=77.2090,
+            kyc_status="minimized"
+        )
+        db.add(col)
+        await db.flush()
 
     stmt = (
         select(Lot)
@@ -47,17 +68,25 @@ async def get_or_create_draft_lot(user: User, db: AsyncSession) -> Lot:
         )
         db.add(lot)
         await db.commit()
-        
+
         # Re-fetch with relations
         res = await db.execute(stmt)
         lot = res.scalar_one_or_none()
-        
+
+    if lot is None:
+        raise KabadiwalaAPIException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="DRAFT_LOT_CREATION_FAILED",
+            message_key="server_error",
+            details={"detail": "Unable to initialize collector draft lot"}
+        )
+
     return lot
 
 @router.get("", response_model=BasketResponse)
 async def get_basket(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     lot = await get_or_create_draft_lot(user, db)
-    
+
     tot_min = 0
     tot_max = 0
     tot_wt = 0
@@ -120,13 +149,13 @@ async def add_basket_item(
     db: AsyncSession = Depends(get_db)
 ):
     lot = await get_or_create_draft_lot(user, db)
-    
+
     stmt_m = select(Material).where(Material.id == item_data.material_id)
     res_m = await db.execute(stmt_m)
     mat = res_m.scalar_one_or_none()
     if not mat:
         raise KabadiwalaAPIException(status_code=404, code="MATERIAL_NOT_FOUND", message_key="lot_not_found")
-        
+
     wt_kg = item_data.est_weight_g / 1000.0
     est = calculate_item_estimate(mat.base_price_paise_per_kg, wt_kg, item_data.condition)
 
@@ -148,12 +177,21 @@ async def remove_basket_item(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(LotItem).where(LotItem.id == id)
+    stmt = select(LotItem).where(LotItem.id == id).options(selectinload(LotItem.lot))
     res = await db.execute(stmt)
     item = res.scalar_one_or_none()
-    if item:
-        await db.delete(item)
-        await db.commit()
+    if not item:
+        raise KabadiwalaAPIException(status_code=404, code="ITEM_NOT_FOUND", message_key="lot_not_found")
+
+    lot = item.lot
+    if user.role != "admin":
+        col_res = await db.execute(select(Collector).where(Collector.user_id == user.id))
+        col = col_res.scalar_one_or_none()
+        if not col or lot.collector_id != col.id:
+            raise KabadiwalaAPIException(status_code=404, code="ITEM_NOT_FOUND", message_key="lot_not_found")
+
+    await db.delete(item)
+    await db.commit()
     return {"status": "success", "deleted_id": id}
 
 @router.post("/sell")
@@ -168,7 +206,7 @@ async def sell_basket(
             code="BASKET_EMPTY",
             message_key="basket_empty"
         )
-        
+
     tot_min = sum(i.est_value_min_paise for i in lot.items)
     tot_max = sum(i.est_value_max_paise for i in lot.items)
     tot_wt = sum(i.est_weight_g for i in lot.items)

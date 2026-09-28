@@ -1,5 +1,5 @@
-import pytest
-from app.services.minerals import calculate_recoverable_minerals, EFFICIENCIES
+from app.services.minerals import EFFICIENCIES, calculate_recoverable_minerals
+
 
 def test_critical_minerals_recovery_efficiencies():
     # Base metal efficiency is 0.85
@@ -18,14 +18,14 @@ def test_critical_minerals_calculation():
         {"element": "au", "weight_kg": 10.0, "grams_per_kg": 0.35}
     ]
     res = calculate_recoverable_minerals(items)
-    
+
     cu_item = next(x for x in res if x["element"] == "cu")
     au_item = next(x for x in res if x["element"] == "au")
-    
+
     # cu: 10 * 180 * 0.85 = 1530.0 grams
     assert cu_item["grams"] == 1530.0
     assert cu_item["is_strategic"] is True
-    
+
     # au: 10 * 0.35 * 0.70 = 2.45 grams
     assert au_item["grams"] == 2.45
     assert au_item["is_strategic"] is True

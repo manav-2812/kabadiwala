@@ -8,20 +8,18 @@ in-memory SQLite DB with StaticPool, isolated per session.
 All fixtures use pytest-asyncio and httpx AsyncClient for async test support.
 """
 
+import os
+from pathlib import Path
+
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import (
-    AsyncSession, async_sessionmaker, create_async_engine
-)
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 from starlette.testclient import TestClient
 
 # Patch settings BEFORE importing the app so test DB is used everywhere
 import app.core.config as _config_module
-
-import os
-from pathlib import Path
 
 TEST_DB_FILE = Path(__file__).parent / "test_kabadiwala.db"
 TEST_DB_URL = f"sqlite+aiosqlite:///{TEST_DB_FILE.as_posix()}"
@@ -36,10 +34,9 @@ if TEST_DB_FILE.exists():
         pass
 
 # Now safe to import app
-from app.main import app  # noqa: E402
-from app.db.session import get_db  # noqa: E402
-from app.models.all_models import Base  # noqa: E402
-
+from app.db.session import get_db
+from app.main import app
+from app.models.all_models import Base
 
 # ── Async engine wired to test SQLite file ────────────────────────────────────
 
@@ -57,6 +54,7 @@ _TestSessionMaker = async_sessionmaker(
 
 # Patch session module engine and maker so seed_database and app use the exact same StaticPool in-memory DB
 import app.db.session as _session_module
+
 _session_module.engine = _test_engine
 _session_module.async_session_maker = _TestSessionMaker
 
@@ -92,6 +90,7 @@ async def _override_get_db():
             await session.close()
 
 app.dependency_overrides[get_db] = _override_get_db
+app.state.limiter.enabled = False
 
 
 # ── Sync TestClient (for tests that don't need async) ────────────────────────

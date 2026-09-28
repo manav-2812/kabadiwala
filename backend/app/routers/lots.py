@@ -3,26 +3,39 @@ import json
 import secrets
 import string
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, Query, status
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.core.lot_state import validate_transition, LotStatus
+from app.core.lot_state import LotStatus, validate_transition
+from app.db.session import get_db
 from app.models.all_models import (
-    User, Collector, Lot, LotItem, LotPhoto, Material, MaterialComposition,
-    Quote, Transaction, TraceabilityEvent, Cancellation
+    Cancellation,
+    Collector,
+    Lot,
+    LotItem,
+    LotPhoto,
+    Material,
+    Quote,
+    TraceabilityEvent,
+    User,
 )
+from app.routers.auth import get_current_user
 from app.schemas.all_schemas import (
-    LotCreate, LotResponse, LotItemResponse, LotEstimateResponse,
-    EstimateItemRequest, EstimateItemResponse, MineralChip
+    EstimateItemRequest,
+    EstimateItemResponse,
+    LotCreate,
+    LotEstimateResponse,
+    LotItemResponse,
+    LotResponse,
+    MineralChip,
 )
-from app.services.price_engine import calculate_item_estimate
 from app.services.minerals import calculate_recoverable_minerals
-from app.services.trace import compute_event_hash, GENESIS_HASH
+from app.services.price_engine import calculate_item_estimate
+from app.services.trace import GENESIS_HASH, compute_event_hash
 
 router = APIRouter(prefix="/lots", tags=["lots"])
 
@@ -32,11 +45,11 @@ def gen_lot_code() -> str:
     return f"KC-LOT-{chars}"
 
 @router.post("/estimate", response_model=LotEstimateResponse)
-async def estimate_lot(items: List[EstimateItemRequest], db: AsyncSession = Depends(get_db)):
+async def estimate_lot(items: list[EstimateItemRequest], db: AsyncSession = Depends(get_db)):
     stmt = select(Material).options(selectinload(Material.compositions))
     res = await db.execute(stmt)
     mat_map = {m.code: m for m in res.scalars().all()}
-    
+
     comp_inputs = []
     item_responses = []
     tot_min_p = 0
@@ -50,7 +63,7 @@ async def estimate_lot(items: List[EstimateItemRequest], db: AsyncSession = Depe
             continue
         if mat.is_hazardous:
             is_haz = True
-            
+
         est = calculate_item_estimate(
             base_price_paise_per_kg=mat.base_price_paise_per_kg,
             weight_kg=item.weight_kg,
@@ -59,7 +72,7 @@ async def estimate_lot(items: List[EstimateItemRequest], db: AsyncSession = Depe
         tot_min_p += est["min_paise"]
         tot_max_p += est["max_paise"]
         tot_wt += item.weight_kg
-        
+
         item_responses.append(EstimateItemResponse(
             material_code=item.material_code,
             weight_kg=item.weight_kg,
@@ -157,10 +170,10 @@ async def create_lot(
             continue
         if mat.is_hazardous:
             is_haz = True
-            
+
         wt_kg = item_data.est_weight_g / 1000.0
         est = calculate_item_estimate(mat.base_price_paise_per_kg, wt_kg, item_data.condition)
-        
+
         total_min += est["min_paise"]
         total_max += est["max_paise"]
         total_wt += item_data.est_weight_g
@@ -229,9 +242,9 @@ async def create_lot(
     await db.commit()
     return await get_lot_detail(lot.id, user, db)
 
-@router.get("", response_model=List[LotResponse])
+@router.get("", response_model=list[LotResponse])
 async def get_lots(
-    status: Optional[str] = None,
+    status: str | None = None,
     collector_only: bool = False,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -401,7 +414,7 @@ async def get_lot_detail(
 @router.post("/{id}/cancel")
 async def cancel_lot(
     id: str,
-    payload: Dict[str, str],
+    payload: dict[str, str],
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -426,7 +439,7 @@ async def cancel_lot(
                 code="LOT_NOT_FOUND",
                 message_key="lot_not_found"
             )
-        
+
     validate_transition(lot.status, LotStatus.CANCELLED)
     lot.status = LotStatus.CANCELLED.value
 

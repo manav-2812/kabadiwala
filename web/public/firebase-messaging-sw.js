@@ -9,31 +9,38 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  apiKey:            "AIzaSyD_c3yDMb0SfidHUAdILAsF8PA59d3AcR8",
-  authDomain:        "kabadiwala-d9179.firebaseapp.com",
-  projectId:         "kabadiwala-d9179",
-  storageBucket:     "kabadiwala-d9179.firebasestorage.app",
-  messagingSenderId: "648613915182",
-  appId:             "1:648613915182:web:4ddd69b18434f126ca0dbf",
-});
+const firebaseConfig = {
+  apiKey:            self.__FIREBASE_API_KEY__ || '',
+  authDomain:        self.__FIREBASE_AUTH_DOMAIN__ || '',
+  projectId:         self.__FIREBASE_PROJECT_ID__ || '',
+  storageBucket:     self.__FIREBASE_STORAGE_BUCKET__ || '',
+  messagingSenderId: self.__FIREBASE_MESSAGING_SENDER_ID__ || '',
+  appId:             self.__FIREBASE_APP_ID__ || '',
+};
 
-const messaging = firebase.messaging();
+if (firebaseConfig.apiKey) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
 
-/**
- * Background message handler — fires when the app is in the background or closed.
- */
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title ?? 'Kabadiwala Connect';
-  const options = {
-    body:    payload.notification?.body ?? '',
-    icon:    payload.notification?.icon ?? '/favicon.svg',
-    badge:   '/favicon.svg',
-    data:    payload.data,
-    actions: [{ action: 'open', title: 'Open App' }],
-  };
-  self.registration.showNotification(title, options);
-});
+    /**
+     * Background message handler — fires when the app is in the background or closed.
+     */
+    messaging.onBackgroundMessage((payload) => {
+      const title = payload.notification?.title ?? 'Kabadiwala Connect';
+      const options = {
+        body:    payload.notification?.body ?? '',
+        icon:    payload.notification?.icon ?? '/favicon.svg',
+        badge:   '/favicon.svg',
+        data:    payload.data,
+        actions: [{ action: 'open', title: 'Open App' }],
+      };
+      self.registration.showNotification(title, options);
+    });
+  } catch (err) {
+    console.warn('[FCM SW] Failed to initialize Firebase Messaging:', err);
+  }
+}
 
 /** On notification click — open the app or a specific URL */
 self.addEventListener('notificationclick', (event) => {

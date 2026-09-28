@@ -1,5 +1,5 @@
-import pytest
-from app.services.price_engine import calculate_item_estimate, get_formal_premium_paise, CONDITION_FACTORS
+from app.services.price_engine import calculate_item_estimate, get_formal_premium_paise
+
 
 def test_price_engine_working_condition():
     # Base price: 40000 paise (₹400), 2 kg, working condition (1.10x)

@@ -11,7 +11,6 @@ security bug found in the audit.
 """
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
 
 # Admin endpoints to check — (method, path, optional_body)
@@ -102,7 +101,8 @@ async def test_admin_data_health_accessible_to_admin(
 @pytest.mark.asyncio
 async def test_signup_with_admin_role_rejected():
     """POST /auth/signup with role=admin → 422 (not allowed for self-signup)."""
-    from httpx import AsyncClient, ASGITransport
+    from httpx import ASGITransport, AsyncClient
+
     from app.main import app
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         res = await ac.post("/api/auth/signup", json={
@@ -144,6 +144,6 @@ async def test_signup_existing_user_does_not_change_role(async_client: AsyncClie
         role = login.json().get("user", {}).get("role")
         # The role must be the original one (collector), not what the attacker tried to set
         assert role != "recycler", (
-            f"Signup was able to change existing user's role to 'recycler'! "
-            f"This is a critical §1.0 vulnerability."
+            "Signup was able to change existing user's role to 'recycler'! "
+            "This is a critical §1.0 vulnerability."
         )

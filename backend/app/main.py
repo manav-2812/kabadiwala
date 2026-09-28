@@ -1,29 +1,48 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import JSONResponse
+
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
+
 from app.core.config import settings
 from app.core.i18n import KabadiwalaAPIException
-from app.ws.manager import ws_manager
+from app.core.limiter import limiter
 
 # Import all routers
 from app.routers import (
-    auth, materials, prices, lots, basket, recyclers,
-    quotes, transactions, payments, wallet, trace, safety,
-    documents, support, notifications, dashboard, demo, sync,
-    ml, admin
+    admin,
+    auth,
+    basket,
+    dashboard,
+    demo,
+    documents,
+    lots,
+    materials,
+    ml,
+    notifications,
+    payments,
+    prices,
+    quotes,
+    recyclers,
+    safety,
+    support,
+    sync,
+    trace,
+    transactions,
+    wallet,
 )
+from app.ws.manager import ws_manager
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Guard: startup check fails if DEMO_MODE=false while any is_synthetic=true user exists."""
     if not settings.DEMO_MODE:
+        from sqlalchemy import select
+
         from app.db.session import async_session_maker
         from app.models.all_models import User
-        from sqlalchemy import select
         async with async_session_maker() as db:
             result = await db.execute(select(User).where(User.is_synthetic == True))
             synthetic_users = result.scalars().all()
@@ -36,8 +55,6 @@ async def lifespan(app: FastAPI):
     yield
 
 # §1.6 — Rate limiter (slowapi, compatible with FastAPI/Starlette)
-# The key function uses the request body phone param; falls back to IP.
-limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -110,7 +127,7 @@ async def websocket_updates(websocket: WebSocket):
     await ws_manager.connect(websocket, channel="global")
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, channel="global")
 
@@ -120,7 +137,7 @@ async def websocket_tracking(websocket: WebSocket, transaction_id: str):
     await ws_manager.connect(websocket, channel=channel)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, channel=channel)
 
@@ -145,8 +162,9 @@ async def health():
 @app.get("/readyz")
 async def readyz():
     """Readiness probe — checks DB connectivity before accepting traffic."""
-    from app.db.session import async_session_maker
     from sqlalchemy import text
+
+    from app.db.session import async_session_maker
     try:
         async with async_session_maker() as db:
             await db.execute(text("SELECT 1"))

@@ -19,14 +19,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
-from sqlalchemy import select, desc, update
+from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.all_models import MLModel, MLPrediction, TrainingLabel, LotItem
+from app.models.all_models import LotItem, MLModel, MLPrediction, TrainingLabel
 
 
 async def log_prediction(
@@ -40,9 +39,9 @@ async def log_prediction(
     output_data: Any,
     confidence: float = 0.0,
     latency_ms: int = 0,
-    model_id: Optional[str] = None,
+    model_id: str | None = None,
     user_override: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """
     Log one ML prediction to ml_predictions.
     Returns the created prediction id, or None if logging is disabled.
@@ -78,7 +77,7 @@ async def log_override(
     suggested_material_id: str,
     chosen_material_id: str,
     ai_confidence: float,
-    prediction_id: Optional[str] = None,
+    prediction_id: str | None = None,
 ) -> None:
     """
     Record that the user overrode an AI suggestion.
@@ -119,7 +118,7 @@ async def log_override(
     await db.commit()
 
 
-async def get_active_model(db: AsyncSession, task: str) -> Optional[MLModel]:
+async def get_active_model(db: AsyncSession, task: str) -> MLModel | None:
     """Return the active MLModel for a given task, or None."""
     stmt = (
         select(MLModel)

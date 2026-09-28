@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Set, Dict, List
+
 from app.core.i18n import KabadiwalaAPIException
+
 
 class LotStatus(str, Enum):
     DRAFT = "draft"
@@ -25,7 +26,7 @@ class LotStatus(str, Enum):
     REFUND_REVIEW = "refund_review"
 
 # Allowed forward transitions and side exits
-TRANSITIONS: Dict[LotStatus, Set[LotStatus]] = {
+TRANSITIONS: dict[LotStatus, set[LotStatus]] = {
     LotStatus.DRAFT: {LotStatus.LISTED, LotStatus.CANCELLED},
     LotStatus.LISTED: {LotStatus.QUOTED, LotStatus.CANCELLED},
     LotStatus.QUOTED: {LotStatus.ACCEPTED, LotStatus.LISTED, LotStatus.CANCELLED},
@@ -81,7 +82,7 @@ TRANSITIONS: Dict[LotStatus, Set[LotStatus]] = {
 def validate_transition(current: LotStatus | str, next_state: LotStatus | str) -> bool:
     curr_enum = LotStatus(current) if isinstance(current, str) else current
     next_enum = LotStatus(next_state) if isinstance(next_state, str) else next_state
-    
+
     allowed = TRANSITIONS.get(curr_enum, set())
     if next_enum not in allowed:
         raise KabadiwalaAPIException(
@@ -96,6 +97,6 @@ def validate_transition(current: LotStatus | str, next_state: LotStatus | str) -
         )
     return True
 
-def get_allowed_next_states(current: LotStatus | str) -> List[str]:
+def get_allowed_next_states(current: LotStatus | str) -> list[str]:
     curr_enum = LotStatus(current) if isinstance(current, str) else current
     return [s.value for s in TRANSITIONS.get(curr_enum, set())]

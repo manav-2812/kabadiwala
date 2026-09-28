@@ -1,20 +1,21 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 from app.db.session import get_db
 from app.models.all_models import Material, MaterialComposition
-from app.schemas.all_schemas import MaterialResponse, MaterialCompositionResponse
+from app.schemas.all_schemas import MaterialCompositionResponse, MaterialResponse
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
-@router.get("", response_model=List[MaterialResponse])
+@router.get("", response_model=list[MaterialResponse])
 async def get_materials(db: AsyncSession = Depends(get_db)):
     stmt = select(Material).options(selectinload(Material.compositions))
     res = await db.execute(stmt)
     materials = res.scalars().all()
-    
+
     result = []
     for m in materials:
         result.append(MaterialResponse(
@@ -49,7 +50,7 @@ async def get_materials(db: AsyncSession = Depends(get_db)):
         ))
     return result
 
-@router.get("/{id}/composition", response_model=List[MaterialCompositionResponse])
+@router.get("/{id}/composition", response_model=list[MaterialCompositionResponse])
 async def get_composition(id: str, db: AsyncSession = Depends(get_db)):
     stmt = select(MaterialComposition).where(MaterialComposition.material_id == id)
     res = await db.execute(stmt)

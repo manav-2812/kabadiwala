@@ -1,20 +1,28 @@
 import json
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.core.lot_state import validate_transition, LotStatus
+from app.core.lot_state import LotStatus, validate_transition
 from app.core.security import generate_receipt_no
+from app.db.session import get_db
 from app.models.all_models import (
-    User, Lot, Quote, Transaction, Recycler, Collector, TraceabilityEvent, PickupAgent
+    Collector,
+    Lot,
+    PickupAgent,
+    Quote,
+    Recycler,
+    TraceabilityEvent,
+    Transaction,
+    User,
 )
+from app.routers.auth import get_current_user
 from app.schemas.all_schemas import QuoteCreate, QuoteResponse
-from app.services.trace import compute_event_hash, GENESIS_HASH
+from app.services.trace import GENESIS_HASH, compute_event_hash
 from app.ws.manager import ws_manager
 
 router = APIRouter(tags=["quotes"])
@@ -31,14 +39,10 @@ async def submit_quote(
     lot = res.scalar_one_or_none()
     if not lot:
         raise KabadiwalaAPIException(status_code=404, code="LOT_NOT_FOUND", message_key="lot_not_found")
-        
+
     stmt_r = select(Recycler).where(Recycler.user_id == user.id)
     res_r = await db.execute(stmt_r)
     rec = res_r.scalar_one_or_none()
-    if not rec:
-        stmt_r = select(Recycler)
-        res_r = await db.execute(stmt_r)
-        rec = res_r.scalars().first()
 
     if not rec:
         raise KabadiwalaAPIException(
@@ -59,7 +63,7 @@ async def submit_quote(
         note=data.note
     )
     db.add(quote)
-    
+
     if lot.status == "listed":
         lot.status = "quoted"
 
@@ -107,7 +111,7 @@ async def submit_quote(
         note=quote.note
     )
 
-@router.get("/lots/{lot_id}/quotes", response_model=List[QuoteResponse])
+@router.get("/lots/{lot_id}/quotes", response_model=list[QuoteResponse])
 async def get_lot_quotes(
     lot_id: str,
     db: AsyncSession = Depends(get_db)
@@ -124,7 +128,7 @@ async def get_lot_quotes(
         return []
 
     max_p = max(q.price_paise_total for q in quotes)
-    
+
     result = []
     for idx, q in enumerate(quotes):
         rec = q.recycler

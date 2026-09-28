@@ -1,24 +1,38 @@
-import json
-import hmac
-import hashlib
 import csv
+import hashlib
+import hmac
 import io
+import json
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
-from fastapi import APIRouter, Depends, Query, status, Response
+
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import desc, select
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.core.rbac import require_role  # §1.1 RBAC
+
 from app.core.i18n import KabadiwalaAPIException
+from app.core.rbac import require_role  # §1.1 RBAC
+from app.db.session import get_db
 from app.models.all_models import (
-    User, Transaction, Lot, LotItem, Payment, AnomalyFlag, MatchingWeight,
-    Dataset, DatasetVersion, IngestQuarantine, TrainingLabel, MLModel, Collector,
-    SupportTicket, TicketMessage, DriftSnapshot
+    AnomalyFlag,
+    Collector,
+    Dataset,
+    DriftSnapshot,
+    IngestQuarantine,
+    Lot,
+    LotItem,
+    MatchingWeight,
+    MLModel,
+    MLPrediction,
+    SupportTicket,
+    TrainingLabel,
+    Transaction,
+    User,
 )
 from app.services.importer import import_real_data, retire_synthetic_users
+from app.services.ml_registry import get_active_model, promote_model, rollback_model
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -32,20 +46,20 @@ def hash_phone(phone: str) -> str:
 
 class AnomalyReviewRequest(BaseModel):
     action: str # "cleared" or "escalated"
-    notes: Optional[str] = "Reviewed by compliance officer"
+    notes: str | None = "Reviewed by compliance officer"
 
 class MatchingWeightsUpdate(BaseModel):
     w_distance: float
     w_price: float
     w_reputation: float
     w_hazardous_capability: float
-    version: Optional[str] = None
+    version: str | None = None
 
 # --- Anomaly Detection ---
 @router.get("/anomalies")
 async def list_anomalies(
-    status_filter: Optional[str] = Query(None),
-    severity_filter: Optional[str] = Query(None),
+    status_filter: str | None = Query(None),
+    severity_filter: str | None = Query(None),
     _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db)
 ):
@@ -110,7 +124,7 @@ async def review_anomaly(
     flag.status = payload.action
     flag.reviewed_by = user.id
     flag.reviewed_at = datetime.now(timezone.utc)
-    
+
     # Append notes to reasons_json
     try:
         reasons = json.loads(flag.reasons_json)
@@ -160,6 +174,9 @@ async def get_matching_weights(
     return {
         "active_version": active.version if active else "v1.0",
         "active_weights": active_dict,
+        "weights": active_dict,
+        "version": active.version if active else "v1.0",
+        "active": True,
         "history": history
     }
 
@@ -305,7 +322,7 @@ async def export_anonymized_csv(
         coarse_lat = round(float(l.pickup_lat), 2) if l.pickup_lat else 28.61
         coarse_lng = round(float(l.pickup_lng), 2) if l.pickup_lng else 77.21
         anon_phone = hash_phone(f"9811{l.id[:6]}")
-        
+
         writer.writerow([
             l.lot_code,
             l.created_at.strftime("%Y-%m-%d") if l.created_at else "2026-03-01",
@@ -337,9 +354,6 @@ async def export_anonymized_csv(
 # AI CONSOLE ENDPOINTS (Section 12 of AI Integration Spec)
 # =============================================================================
 
-from sqlalchemy import update as sa_update, func
-from app.models.all_models import MLPrediction, DriftSnapshot
-from app.services.ml_registry import get_active_model, promote_model, rollback_model
 
 class ModelPromoteRequest(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
@@ -351,11 +365,11 @@ class ModelRollbackRequest(BaseModel):
 
 class LabelVerifyRequest(BaseModel):
     verified: bool
-    material_code: Optional[str] = None
+    material_code: str | None = None
 
 class RetainRequest(BaseModel):
     task: str = "classify"
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 # --- GET /admin/ml/overview ---
@@ -399,7 +413,7 @@ async def ai_overview(
 # --- GET /admin/ml/predictions ---
 @router.get("/ml/predictions")
 async def list_predictions(
-    task: Optional[str] = Query(None),
+    task: str | None = Query(None),
     override_only: bool = Query(False),
     limit: int = Query(50, ge=1, le=500),
     _admin: User = Depends(require_role("admin")),  # §1.1
@@ -508,24 +522,6 @@ async def verify_label(
     return {"id": label_id, "verified": req.verified}
 
 
-# --- GET/POST /admin/matching-weights ---
-@router.get("/matching-weights")
-async def get_matching_weights(db: AsyncSession = Depends(get_db)):
-    """AI Console: current active matching weights."""
-    from app.services.matching import DEFAULT_WEIGHTS
-    stmt = (
-        select(MatchingWeight)
-        .where(MatchingWeight.is_active == True)
-        .order_by(desc(MatchingWeight.created_at))
-        .limit(1)
-    )
-    res = await db.execute(stmt)
-    row = res.scalar_one_or_none()
-    if row:
-        return {"version": row.version, "weights": json.loads(row.weights_json), "active": True}
-    return {"version": "default", "weights": DEFAULT_WEIGHTS, "active": True}
-
-
 class MatchingWeightsV2(BaseModel):
     payout: float
     proximity: float
@@ -533,11 +529,11 @@ class MatchingWeightsV2(BaseModel):
     pickup: float
     reliability: float
     response: float
-    version: Optional[str] = None
+    version: str | None = None
 
 
 @router.post("/matching-weights")
-async def update_matching_weights(req: MatchingWeightsV2, _admin: User = Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):  # §1.1
+async def update_matching_weights_post(req: MatchingWeightsV2, _admin: User = Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):  # §1.1
     """
     AI Console: update matching weights.
     Validates weights sum to 1.00 (±0.005 tolerance).
@@ -569,7 +565,7 @@ async def update_matching_weights(req: MatchingWeightsV2, _admin: User = Depends
 # --- GET /admin/ml/drift ---
 @router.get("/ml/drift")
 async def get_drift_snapshots(
-    task: Optional[str] = Query(None),
+    task: str | None = Query(None),
     days: int = Query(30, ge=1, le=365),
     _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db),
@@ -631,7 +627,7 @@ async def trigger_retrain(
             "Run training manually, then call /admin/ml/models/{id}/activate "
             "after eval metrics pass the gate."
         ),
-        "next_step": f"make -f ml/Makefile ml-train && make ml-eval",
+        "next_step": "make -f ml/Makefile ml-train && make ml-eval",
     }
 
 
@@ -641,10 +637,10 @@ async def trigger_retrain(
 
 class RealDataImportRequest(BaseModel):
     csv_content: str
-    dataset_type: Optional[str] = None
+    dataset_type: str | None = None
 
 class RetireSyntheticRequest(BaseModel):
-    user_identifiers: List[str]
+    user_identifiers: list[str]
 
 
 @router.get("/collectors")

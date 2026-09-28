@@ -42,12 +42,10 @@ jobs:
       - name: i18n key parity check
         working-directory: web
         run: npm run test:i18n
-        continue-on-error: true
 
       - name: Unit tests — Vitest (§3.2)
         working-directory: web
         run: npm run test
-        continue-on-error: true  # non-blocking until unit tests are written
 
       - name: Production build
         working-directory: web
@@ -58,4 +56,4 @@ jobs:
       - name: Bundle size check (§3.4)
         working-directory: web
         run: npm run measure:bundle
-        continue-on-error: true
+

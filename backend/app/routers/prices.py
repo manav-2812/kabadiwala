@@ -1,8 +1,8 @@
-from typing import List, Optional
-from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+
 from app.db.session import get_db
 from app.models.all_models import Material, PriceHistory
 from app.schemas.all_schemas import PriceHistoryItem, PriceSummaryItem
@@ -43,12 +43,12 @@ REASONS = {
     }
 }
 
-@router.get("/summary", response_model=List[PriceSummaryItem])
-async def get_price_summary(city: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+@router.get("/summary", response_model=list[PriceSummaryItem])
+async def get_price_summary(city: str | None = None, db: AsyncSession = Depends(get_db)):
     stmt = select(Material)
     res = await db.execute(stmt)
     materials = res.scalars().all()
-    
+
     summary = []
     for m in materials:
         # Fetch last 14 days prices
@@ -60,11 +60,11 @@ async def get_price_summary(city: Optional[str] = None, db: AsyncSession = Depen
         )
         p_res = await db.execute(p_stmt)
         history = list(reversed(p_res.scalars().all()))
-        
+
         sparkline = [h.price_paise_per_kg for h in history] if history else [m.base_price_paise_per_kg]
         current_p = sparkline[-1]
         start_p = sparkline[0] if len(sparkline) > 1 else current_p
-        
+
         pct_change = round(((current_p - start_p) / float(start_p)) * 100.0, 1) if start_p else 0.0
         r_meta = REASONS.get(m.code, REASONS["default"])
 
@@ -86,10 +86,10 @@ async def get_price_summary(city: Optional[str] = None, db: AsyncSession = Depen
         ))
     return summary
 
-@router.get("", response_model=List[PriceHistoryItem])
+@router.get("", response_model=list[PriceHistoryItem])
 async def get_prices(
-    material_id: Optional[str] = None,
-    city: Optional[str] = None,
+    material_id: str | None = None,
+    city: str | None = None,
     days: int = Query(14, ge=1, le=90),
     db: AsyncSession = Depends(get_db)
 ):
@@ -99,7 +99,7 @@ async def get_prices(
     stmt = stmt.order_by(desc(PriceHistory.date)).limit(days)
     res = await db.execute(stmt)
     rows = list(reversed(res.scalars().all()))
-    
+
     return [
         PriceHistoryItem(
             date=r.date,
@@ -113,7 +113,7 @@ async def get_prices(
 @router.get("/trends")
 async def get_trends(
     material: str = Query(..., description="Material code, e.g. PCB, CABLE, BATTERY_LI"),
-    city: Optional[str] = Query(None),
+    city: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     """

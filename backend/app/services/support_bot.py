@@ -1,4 +1,3 @@
-from typing import Dict, Any
 
 BOT_TEMPLATES = {
     "payment": {
@@ -32,10 +31,10 @@ def generate_bot_reply(category: str, user_text: str, language: str = "hi") -> s
     lang = language.lower()
     if lang not in ["en", "hi", "pa"]:
         lang = "hi"
-        
+
     cat = category.lower()
     text = user_text.lower()
-    
+
     matched_cat = "default"
     if "pay" in text or "upi" in text or "paisa" in text or "paise" in text or cat == "payment":
         matched_cat = "payment"
@@ -45,5 +44,5 @@ def generate_bot_reply(category: str, user_text: str, language: str = "hi") -> s
         matched_cat = "pickup"
     elif "fire" in text or "hazard" in text or "chemical" in text or cat == "safety":
         matched_cat = "safety"
-        
+
     return BOT_TEMPLATES.get(matched_cat, BOT_TEMPLATES["default"]).get(lang, BOT_TEMPLATES["default"]["hi"])

@@ -15,15 +15,15 @@ Default weights (must sum to 1.00): payout=0.30, proximity=0.25, rate=0.20,
 """
 from __future__ import annotations
 
-import json
 import math
+from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Default weights (used when DB has no active MatchingWeight row)
 # ---------------------------------------------------------------------------
-DEFAULT_WEIGHTS: Dict[str, float] = {
+DEFAULT_WEIGHTS: dict[str, float] = {
     "payout":      0.30,
     "proximity":   0.25,
     "rate":        0.20,
@@ -51,14 +51,12 @@ def _derive_reasons(
     reliability_norm: float,
     response_norm: float,
     norm_rate: float,
-) -> List[str]:
+) -> list[str]:
     """Return up to 3 reason codes from the spec."""
-    reasons: List[str] = []
+    reasons: list[str] = []
     if norm_payout >= 0.80:
         reasons.append("HIGHEST_PAYOUT")
-    if dist_km <= 5.0 and "HIGHEST_PAYOUT" not in reasons:
-        reasons.append("NEAREST")
-    elif dist_km <= 5.0:
+    if dist_km <= 5.0 and "HIGHEST_PAYOUT" not in reasons or dist_km <= 5.0:
         reasons.append("NEAREST")
     if pickup_available and len(reasons) < 3:
         reasons.append("PICKUP_AVAILABLE")
@@ -82,11 +80,11 @@ def rank_recyclers_for_lot(
     collector_lat: float,
     collector_lng: float,
     lot_est_paise: int,
-    lot_materials: List[str],
+    lot_materials: list[str],
     recyclers: Sequence[Any],
-    weights: Optional[Dict[str, float]] = None,
+    weights: dict[str, float] | None = None,
     weights_version: str = "default",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Rank recyclers with 6-factor explainable score.
 
@@ -144,7 +142,7 @@ def rank_recyclers_for_lot(
     # ---------------------------------------------------------------
     # Normalise each dimension across the candidate set
     # ---------------------------------------------------------------
-    def _norm(vals: List[float], val: float, invert: bool = False) -> float:
+    def _norm(vals: list[float], val: float, invert: bool = False) -> float:
         lo, hi = min(vals), max(vals)
         if hi == lo:
             return 1.0

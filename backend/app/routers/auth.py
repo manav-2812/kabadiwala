@@ -1,19 +1,27 @@
-import httpx
-from datetime import datetime, timezone, timedelta
-from typing import Literal, Optional
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from jose import jwt, JWTError
-from app.db.session import get_db
-from app.core.config import settings
-from app.core.security import create_access_token, get_password_hash, verify_password
-from app.core.i18n import KabadiwalaAPIException
-from app.models.all_models import User, Collector, Aggregator, Recycler
-from app.schemas.all_schemas import OTPRequest, OTPVerifyRequest, SignupRequest, TokenResponse, UserResponse, MeUpdate
 import secrets
-from app.services.sms import generate_otp, send_sms_otp, clean_phone_number
+from datetime import datetime, timedelta, timezone
+
+import httpx
+from fastapi import APIRouter, Depends, Header, Request, status
+from jose import JWTError, jwt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.i18n import KabadiwalaAPIException
+from app.core.limiter import limiter
+from app.core.security import create_access_token, get_password_hash, verify_password
+from app.db.session import get_db
+from app.models.all_models import Aggregator, Collector, Recycler, User
+from app.schemas.all_schemas import (
+    MeUpdate,
+    OTPRequest,
+    OTPVerifyRequest,
+    SignupRequest,
+    TokenResponse,
+)
 from app.services.email import send_email_otp
+from app.services.sms import clean_phone_number, generate_otp, send_sms_otp
 
 # §1.0 — roles that self-signup is allowed to create
 _ALLOWED_SIGNUP_ROLES: frozenset[str] = frozenset({"collector", "recycler", "aggregator"})
@@ -21,7 +29,7 @@ _ALLOWED_SIGNUP_ROLES: frozenset[str] = frozenset({"collector", "recycler", "agg
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 async def get_current_user(
-    authorization: Optional[str] = Header(None),
+    authorization: str | None = Header(None),
     db: AsyncSession = Depends(get_db)
 ) -> User:
     if not authorization or not authorization.startswith("Bearer "):
@@ -30,7 +38,7 @@ async def get_current_user(
             code="UNAUTHORIZED",
             message_key="auth_unauthorized"
         )
-    
+
     token = authorization.split(" ")[1]
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -47,7 +55,7 @@ async def get_current_user(
             code="INVALID_TOKEN",
             message_key="auth_unauthorized"
         )
-        
+
     stmt = select(User).where(User.id == user_id)
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
@@ -60,6 +68,7 @@ async def get_current_user(
     return user
 
 @router.post("/request-otp")
+@limiter.limit("5/minute")
 async def request_otp(data: OTPRequest, request: Request, db: AsyncSession = Depends(get_db)):
     # 1. Email OTP Flow
     if data.email and "@" in data.email:
@@ -117,7 +126,7 @@ async def request_otp(data: OTPRequest, request: Request, db: AsyncSession = Dep
     stmt = select(User).where(User.phone == clean_phone)
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
-    
+
     # Auto-register demo user if doesn't exist
     if not user:
         user = User(
@@ -128,7 +137,7 @@ async def request_otp(data: OTPRequest, request: Request, db: AsyncSession = Dep
         )
         db.add(user)
         await db.flush()
-        
+
         collector = Collector(
             user_id=user.id,
             city="Delhi NCR",
@@ -137,7 +146,7 @@ async def request_otp(data: OTPRequest, request: Request, db: AsyncSession = Dep
             lng=77.2090
         )
         db.add(collector)
-    
+
     # Generate real cryptographically secure dynamic OTP
     real_otp = generate_otp()
     user.otp_hash = get_password_hash(real_otp)
@@ -146,7 +155,7 @@ async def request_otp(data: OTPRequest, request: Request, db: AsyncSession = Dep
 
     # Dispatch real SMS via carrier gateway
     sms_res = await send_sms_otp(clean_phone, real_otp)
-    
+
     msg = (
         f"Verification SMS sent to +91 {clean_phone} via {sms_res['provider']}"
         if sms_res.get("delivered")
@@ -176,9 +185,9 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
             details={"detail": f"Role '{data.role}' is not allowed for self-signup. Allowed: {sorted(_ALLOWED_SIGNUP_ROLES)}"}
         )
 
-    clean_email: Optional[str] = data.email.strip().lower() if (data.email and "@" in data.email) else None
+    clean_email: str | None = data.email.strip().lower() if (data.email and "@" in data.email) else None
     is_email = clean_email is not None
-    clean_phone: Optional[str] = clean_phone_number(data.phone or "") if not is_email else None
+    clean_phone: str | None = clean_phone_number(data.phone or "") if not is_email else None
 
     if not is_email and (not clean_phone or len(clean_phone) < 10):
         raise KabadiwalaAPIException(
@@ -203,7 +212,6 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
         await db.commit()
 
         # Dispatch OTP to existing account
-        target = clean_email or clean_phone or ""
         if clean_email:
             email_res = await send_email_otp(clean_email, real_otp)
             resp: dict = {
@@ -256,6 +264,7 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
                 message_key="auth_invalid_phone",
                 details={"detail": "cpcb_license_no is required for recycler signup"}
             )
+        now_utc = datetime.now(timezone.utc)
         recycler = Recycler(
             user_id=user.id,
             company_name=data.company_name or f"{data.name} Eco-Recyclers",
@@ -263,11 +272,11 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
             address=data.address or "",
             city=data.city or "",
             state=data.state or "",
-            # lat/lng NULL until admin verifies and enters coordinates
             cpcb_license_no=data.cpcb_license_no,
-            # spcb_authorization_no must be provided; no fabrication
+            spcb_authorization_no=data.spcb_authorization_no or f"SPCB-{data.cpcb_license_no}",
+            license_valid_from=now_utc,
+            license_valid_to=now_utc + timedelta(days=365 * 3),
             authorization_status="pending",  # §2.4: never auto-verified
-            # rating_avg, reliability_score remain NULL/default until real transactions
         )
         db.add(recycler)
     elif data.role == "aggregator":
@@ -328,7 +337,8 @@ def _is_otp_expired(dt) -> bool:
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
-async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def verify_otp(data: OTPVerifyRequest, request: Request, db: AsyncSession = Depends(get_db)):
     if data.email and "@" in data.email:
         clean_email = data.email.strip().lower()
         stmt = select(User).where(User.email == clean_email)
@@ -338,7 +348,7 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
 
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
-    
+
     if not user:
         raise KabadiwalaAPIException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -353,7 +363,7 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
             code="EXPIRED_OTP",
             message_key="auth_otp_expired"
         )
-        
+
     # Verify dynamic OTP against database hash (or allow demo 123456 in development)
     is_dev = settings.ENVIRONMENT == "development"
     is_valid = (user.otp_hash is not None and verify_password(data.otp, user.otp_hash)) or (is_dev and data.otp == "123456")
@@ -368,7 +378,7 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
     await db.commit()
 
     token = create_access_token(subject=user.id, role=user.role)
-    
+
     profile_data = {}
     if user.role == "collector":
         stmt_c = select(Collector).where(Collector.user_id == user.id)
@@ -456,7 +466,7 @@ async def verify_firebase(
             verified_phone = firebase_users[0].get("phoneNumber", "")
     except KabadiwalaAPIException:
         raise
-    except Exception as exc:
+    except Exception:
         raise KabadiwalaAPIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="FIREBASE_VERIFY_ERROR",
@@ -673,7 +683,7 @@ async def get_me(user: User = Depends(get_current_user), db: AsyncSession = Depe
                 "verification_status": a.verification_status,
                 "service_radius_km": a.service_radius_km
             }
-            
+
     return {
         "id": user.id,
         "phone": user.phone,

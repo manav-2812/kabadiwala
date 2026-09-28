@@ -1,13 +1,15 @@
-from typing import Dict, Any, List
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, Query, status
+from typing import Any
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
-from app.db.session import get_db
-from app.routers.auth import get_current_user
+
 from app.core.i18n import KabadiwalaAPIException
-from app.models.all_models import User, Collector, Payment, Transaction, Lot, Document, Quote, Recycler
+from app.db.session import get_db
+from app.models.all_models import Collector, Payment, Quote, Transaction, User
+from app.routers.auth import get_current_user
 from app.services.price_engine import get_formal_premium_paise
 
 router = APIRouter(prefix="/wallet", tags=["wallet"])
@@ -142,7 +144,7 @@ async def get_wallet_history(
 
 @router.post("/withdraw")
 async def withdraw_balance(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -162,14 +164,14 @@ async def withdraw_balance(
             message_key="payment_failed",
             details={"min_inr": 50}
         )
-        
+
     if amt_paise > col.wallet_balance_paise:
         raise KabadiwalaAPIException(
             status_code=status.HTTP_400_BAD_REQUEST,
             code="INSUFFICIENT_FUNDS",
             message_key="payment_failed"
         )
-        
+
     col.wallet_balance_paise -= amt_paise
     await db.commit()
 

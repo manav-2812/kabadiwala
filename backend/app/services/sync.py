@@ -1,17 +1,20 @@
 import json
 from datetime import datetime, timezone
-from typing import List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.all_models import SyncQueueLog
+
 
 async def apply_sync_action(
     db: AsyncSession,
     user_id: str,
     client_uuid: str,
     action: str,
-    payload: Dict[str, Any]
-) -> Dict[str, Any]:
+    payload: dict[str, Any]
+) -> dict[str, Any]:
     """
     Applies an offline client action idempotently based on client_uuid.
     """
@@ -25,7 +28,7 @@ async def apply_sync_action(
             "status": "already_applied",
             "result": json.loads(existing.result_json)
         }
-        
+
     result_data = {
         "status": "applied",
         "action": action,
@@ -41,7 +44,7 @@ async def apply_sync_action(
     )
     db.add(log_entry)
     await db.commit()
-    
+
     return {
         "client_uuid": client_uuid,
         "status": "applied",

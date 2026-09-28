@@ -1,12 +1,14 @@
 import json
-from typing import List, Dict, Any
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, Body
+from typing import Any
+
+from fastapi import APIRouter, Body, Depends
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+
 from app.db.session import get_db
+from app.models.all_models import Collector, Notification, PriceAlert, User
 from app.routers.auth import get_current_user
-from app.models.all_models import User, Collector, Notification, PriceAlert, Material
 from app.schemas.all_schemas import NotificationResponse
 from app.services.fcm import send_fcm_notification
 
@@ -19,7 +21,7 @@ router = APIRouter(tags=["notifications"])
 
 @router.post("/notifications/fcm-token")
 async def register_fcm_token(
-    payload: Dict[str, Any] = Body(...),
+    payload: dict[str, Any] = Body(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -82,7 +84,7 @@ async def push_to_user(
 # Notification History
 # ─────────────────────────────────────────────
 
-@router.get("/notifications", response_model=List[NotificationResponse])
+@router.get("/notifications", response_model=list[NotificationResponse])
 async def get_notifications(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -175,7 +177,7 @@ async def get_price_alerts(
 
 @router.post("/price-alerts")
 async def create_price_alert(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -202,7 +204,7 @@ async def create_price_alert(
 
 @router.post("/notifications/test-push")
 async def test_push_notification(
-    payload: Dict[str, Any] = Body(...),
+    payload: dict[str, Any] = Body(...),
     user: User = Depends(get_current_user),
 ):
     """

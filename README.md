@@ -43,8 +43,8 @@ Kabadiwala Connect implements defense-in-depth security across every endpoint:
    - Collector tokens attempting to query administrative anomalies, matching weights, or data health receive immediate **HTTP 403 Forbidden**.
    - Public self-signup (`POST /api/auth/signup`) explicitly forbids self-assigning the `admin` role (`HTTP 422 Unprocessable Entity`).
 2. **Object-Level Authorization (IDOR Protection §1.8)**:
-   - Collectors can only view, edit, or cancel lots they personally own.
-   - Cross-account access attempts return **HTTP 403 Forbidden**.
+   - Collectors and counterparties can only view, edit, or cancel lots and resources they personally own.
+   - Cross-account access attempts return **HTTP 404 Not Found** to prevent resource ID enumeration.
 3. **Cryptographic Secrets & Production Invariants (§1.2, §1.3)**:
    - Default developmental secret keys are blocked in production via Pydantic model validators.
    - CORS configuration rejects wildcards (`*`) when `ENVIRONMENT=production`.
@@ -89,9 +89,9 @@ The codebase is backed by rigorous automated test suites across every tier:
 ```bash
 cd backend && pytest -v
 ```
-- **65 passing automated tests (100% pass rate, 0 warnings)**.
+- **70 passing automated tests (100% pass rate, 0 warnings)**.
 - `test_rbac.py`: 26 test cases asserting unauthenticated 401, collector 403, and admin 200 on all administrative endpoints.
-- `test_idor.py`: 18 test cases validating object-level ownership boundaries.
+- `test_idor.py`: 8 comprehensive test suites validating object-level ownership boundaries (HTTP 404).
 - `test_matching_golden.py`: Golden vector regression test verifying exclusion of unverified and expired recyclers.
 - `test_hash_chain.py`: Cryptographic Merkle chain integrity, genesis block validation, and tamper detection.
 - `test_lot_state.py`: Finite state machine transition invariants and illegal state jump rejections (HTTP 409).

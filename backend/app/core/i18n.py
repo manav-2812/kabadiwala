@@ -1,5 +1,6 @@
-from typing import Any, Dict, Optional
-from fastapi import HTTPException, status
+from typing import Any
+
+from fastapi import HTTPException
 
 ERROR_MESSAGES = {
     "en": {
@@ -52,8 +53,8 @@ class KabadiwalaAPIException(HTTPException):
         status_code: int,
         code: str,
         message_key: str,
-        details: Optional[Dict[str, Any]] = None,
-        detail: Optional[Any] = None
+        details: dict[str, Any] | None = None,
+        detail: Any | None = None
     ):
         info = details if details is not None else ({"info": detail} if isinstance(detail, str) else (detail or {}))
         super().__init__(
