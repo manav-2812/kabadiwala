@@ -45,7 +45,6 @@ class Collector(Base, TimestampMixin):
     lat: Mapped[float] = mapped_column(Numeric(10, 6), default=28.6139, nullable=False) # Coarse operating center
     lng: Mapped[float] = mapped_column(Numeric(10, 6), default=77.2090, nullable=False) # Coarse operating center
     upi_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    aadhaar_last4: Mapped[Optional[str]] = mapped_column(String(4), nullable=True) # Deprecated / minimized
     kyc_status: Mapped[str] = mapped_column(String(20), default="minimized", nullable=False)  # minimized (data minimization)
     gps_consent: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

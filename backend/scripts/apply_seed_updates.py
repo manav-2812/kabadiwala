@@ -543,7 +543,6 @@ async def seed_database():
                 lat=city_info["lat"] + random.uniform(-0.015, 0.015),
                 lng=city_info["lng"] + random.uniform(-0.015, 0.015),
                 upi_id=f"{phone}@upi",
-                aadhaar_last4=None, # minimized per Section 4
                 kyc_status="verified",
                 wallet_balance_paise=random.randint(45000, 280000),
                 total_earned_paise=random.randint(1200000, 6500000),
