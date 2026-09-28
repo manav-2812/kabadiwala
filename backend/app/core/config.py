@@ -1,7 +1,8 @@
 
 import os
 from typing import List, Optional
-from pydantic_settings import BaseSettings
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 try:
     from dotenv import load_dotenv
@@ -12,38 +13,69 @@ try:
 except ImportError:
     pass
 
+_DEFAULT_SECRET = "sih2026-kabadiwala-connect-secret-key-32chars"
+
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="allow")
+
     PROJECT_NAME: str = "Kabadiwala Connect"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api"
-    
+
     # SQLite fallback when DATABASE_URL is unset
-    _default_db_path: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "kabadiwala.db")).replace("\\", "/")
+    _default_db_path: str = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "kabadiwala.db")
+    ).replace("\\", "/")
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", 
-        f"sqlite+aiosqlite:///{_default_db_path}"
+        "DATABASE_URL",
+        f"sqlite+aiosqlite:///{os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'kabadiwala.db')).replace(chr(92), '/')}"
     )
-    
-    SECRET_KEY: str = os.getenv(
-        "SECRET_KEY", 
-        "sih2026-kabadiwala-connect-secret-key-32chars"
-    )
+
+    # §1.2 — never accept the committed default in production
+    SECRET_KEY: str = os.getenv("SECRET_KEY", _DEFAULT_SECRET)
+
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
-    
+    # §1.7 — shorter TTL reduces window for stolen tokens
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 8)))  # 8h default
+
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+
+    # §1.3 — no wildcard; production origins come from env var only
+    # Dev origins are explicitly listed; add deployed URL via CORS_ORIGINS_EXTRA env var.
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
-        "*"
     ]
-    
+    # Space-separated additional origins (e.g. deployed Vercel URL) set in production env
+    CORS_ORIGINS_EXTRA: str = os.getenv("CORS_ORIGINS_EXTRA", "")
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        """Fail loudly on startup if production secrets are unset / left as defaults."""
+        if self.ENVIRONMENT == "production":
+            if self.SECRET_KEY == _DEFAULT_SECRET:
+                raise RuntimeError(
+                    "CRITICAL: SECRET_KEY must be overridden in production. "
+                    "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                )
+            if "*" in self.CORS_ORIGINS:
+                raise RuntimeError(
+                    "CRITICAL: CORS_ORIGINS must not contain '*' in production."
+                )
+        return self
+
+    @property
+    def all_cors_origins(self) -> List[str]:
+        """Merged CORS list, including any extra production origins from env."""
+        extra = [o.strip() for o in self.CORS_ORIGINS_EXTRA.split() if o.strip()]
+        return list(dict.fromkeys(self.CORS_ORIGINS + extra))  # deduplicate, preserve order
+
     # Realistic Seed & Safety Mode (Section 8)
     DEMO_MODE: bool = os.getenv("DEMO_MODE", "true").lower() == "true"
     SUPPORT_PHONE: Optional[str] = os.getenv("SUPPORT_PHONE", None)
-    
+
     # Real SMS Gateway Configurations
     FAST2SMS_API_KEY: Optional[str] = os.getenv("FAST2SMS_API_KEY")
     TWOFACTOR_API_KEY: Optional[str] = os.getenv("TWOFACTOR_API_KEY")
@@ -89,9 +121,5 @@ class Settings(BaseSettings):
     # Path to active ONNX classifier model (relative to backend/)
     ML_CLASSIFY_MODEL_PATH: str = os.getenv("ML_CLASSIFY_MODEL_PATH", "../ml/artifacts/models/classify.onnx")
 
-    class Config:
-        env_file = ".env"
-        extra = "allow"
 
 settings = Settings()
-

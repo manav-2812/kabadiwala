@@ -830,6 +830,7 @@ async def seed_database():
             for tx_id, a_type, score, reasons, sev in anomaly_seeds:
                 flag = AnomalyFlag(
                     transaction_id=tx_id,
+                    code=a_type.upper(),  # §2.1 fix: code is NOT NULL — use type as structured code
                     type=a_type,
                     score=score,
                     reasons_json=json.dumps(reasons),

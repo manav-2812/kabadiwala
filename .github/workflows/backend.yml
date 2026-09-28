@@ -1,0 +1,73 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} — Test & Lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Ruff lint (§3.1)
+        working-directory: backend
+        run: |
+          pip install ruff
+          ruff check app/ tests/ --output-format=github
+
+      - name: Type check with pyright (§3.1)
+        working-directory: backend
+        run: |
+          pip install pyright
+          pyright app/ || true  # non-blocking until type annotations are complete
+
+      - name: Security audit — pip-audit (§3.1, §5)
+        working-directory: backend
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --severity high || true  # non-blocking: report but don't fail until baseline is clean
+
+      - name: Run pytest (§2.1, §1.1, §1.8)
+        working-directory: backend
+        env:
+          ENVIRONMENT: development
+          SECRET_KEY: ci-test-secret-key-not-production-safe-32chars
+          DEMO_MODE: "true"
+        run: |
+          pytest -q --tb=short tests/
+
+      - name: Alembic migration round-trip (§6)
+        working-directory: backend
+        env:
+          ENVIRONMENT: development
+          SECRET_KEY: ci-test-secret-key-not-production-safe-32chars
+          DATABASE_URL: sqlite+aiosqlite:///./ci-test.db
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+          rm -f ci-test.db

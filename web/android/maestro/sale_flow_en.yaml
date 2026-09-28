@@ -1,0 +1,40 @@
+# Maestro UI Automation Flow: Main Scrap Sale in English
+# Kabadiwala Connect — SIH 2026 (PS SIH26229 §3.3)
+#
+# Run on connected device with Maestro:
+#   maestro test web/android/maestro/sale_flow_en.yaml
+
+appId: in.kabadiwalaconnect.collector
+---
+- launchApp:
+    clearState: true
+
+# 1. Pick English language
+- tapOn: "English"
+
+# 2. Login via OTP
+- tapOn: "Login"
+- inputText: "9876543210"
+- tapOn: "Send OTP"
+- inputText: "123456"
+- tapOn: "Verify OTP"
+
+# 3. Add Scrap
+- tapOn: "Add Scrap"
+
+# 4. Enter Weight
+- tapOn: "Copper Cables & Wires"
+- tapOn: "Enter Weight"
+- inputText: "15"
+- tapOn: "Next"
+
+# 5. Review & Estimate
+- assertVisible: "Estimated Payout"
+- tapOn: "Find Buyers"
+
+# 6. Accept Recycler Quote
+- tapOn: "Accept"
+
+# 7. Cash Handover
+- assertVisible: "Cash Payment"
+- tapOn: "Complete Transaction"

@@ -1,6 +1,6 @@
 import hashlib
 import json
-import random
+import secrets
 import string
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
@@ -27,7 +27,8 @@ from app.services.trace import compute_event_hash, GENESIS_HASH
 router = APIRouter(prefix="/lots", tags=["lots"])
 
 def gen_lot_code() -> str:
-    chars = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    # §1.5 — use secrets.choice, not random.choices (Mersenne Twister)
+    chars = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     return f"KC-LOT-{chars}"
 
 @router.post("/estimate", response_model=LotEstimateResponse)
@@ -109,15 +110,10 @@ async def create_lot(
     stmt_c = select(Collector).where(Collector.user_id == user.id)
     res_c = await db.execute(stmt_c)
     col = res_c.scalar_one_or_none()
-    if not col:
-        # Fallback to first collector
-        stmt_c = select(Collector)
-        res_c = await db.execute(stmt_c)
-        col = res_c.scalars().first()
 
     if not col:
         raise KabadiwalaAPIException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_403_FORBIDDEN,
             code="COLLECTOR_NOT_FOUND",
             message_key="auth_user_not_found",
             details={"detail": "No collector profile found for user"}
@@ -328,6 +324,20 @@ async def get_lot_detail(
             message_key="lot_not_found"
         )
 
+    # §1.8 IDOR: collectors can only see their own lots.
+    # Admins and recyclers may see all lots (for quoting / admin views).
+    if user.role == "collector":
+        stmt_c = select(Collector).where(Collector.user_id == user.id)
+        res_c = await db.execute(stmt_c)
+        caller_col = res_c.scalar_one_or_none()
+        if not caller_col or lot.collector_id != caller_col.id:
+            # Return 404, not 403, to avoid confirming the lot exists
+            raise KabadiwalaAPIException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="LOT_NOT_FOUND",
+                message_key="lot_not_found"
+            )
+
     c_name = lot.collector.user.name if lot.collector and lot.collector.user else "Collector"
     item_responses = []
     for i in lot.items:
@@ -404,6 +414,18 @@ async def cancel_lot(
             code="LOT_NOT_FOUND",
             message_key="lot_not_found"
         )
+
+    # §1.8 IDOR: only the owning collector (or an admin) can cancel a lot
+    if user.role == "collector":
+        stmt_c = select(Collector).where(Collector.user_id == user.id)
+        res_c = await db.execute(stmt_c)
+        caller_col = res_c.scalar_one_or_none()
+        if not caller_col or lot.collector_id != caller_col.id:
+            raise KabadiwalaAPIException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="LOT_NOT_FOUND",
+                message_key="lot_not_found"
+            )
         
     validate_transition(lot.status, LotStatus.CANCELLED)
     lot.status = LotStatus.CANCELLED.value

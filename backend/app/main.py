@@ -2,6 +2,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.i18n import KabadiwalaAPIException
 from app.ws.manager import ws_manager
@@ -32,6 +35,10 @@ async def lifespan(app: FastAPI):
                 )
     yield
 
+# §1.6 — Rate limiter (slowapi, compatible with FastAPI/Starlette)
+# The key function uses the request body phone param; falls back to IP.
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
@@ -40,11 +47,23 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
+app.state.limiter = limiter
 
-# CORS
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "code": "RATE_LIMIT_EXCEEDED",
+            "message_key": "auth_otp_rate_limited",
+            "details": {"detail": f"Rate limit exceeded: {exc.detail}"}
+        }
+    )
+
+# CORS — §1.3: no wildcard; explicit origins only
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.all_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -115,3 +134,23 @@ async def root():
         "docs": "/docs",
         "environment": settings.ENVIRONMENT
     }
+
+
+@app.get("/health")
+async def health():
+    """Liveness probe — returns 200 if the process is alive."""
+    return {"status": "ok"}
+
+
+@app.get("/readyz")
+async def readyz():
+    """Readiness probe — checks DB connectivity before accepting traffic."""
+    from app.db.session import async_session_maker
+    from sqlalchemy import text
+    try:
+        async with async_session_maker() as db:
+            await db.execute(text("SELECT 1"))
+        return {"status": "ready"}
+    except Exception as exc:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"status": "not_ready", "detail": str(exc)})

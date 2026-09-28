@@ -1,11 +1,11 @@
-import random
+import secrets
 import string
 from datetime import datetime, timezone
 from typing import Dict, Any
 
 def generate_upi_ref() -> str:
-    digits = "".join(random.choices(string.digits, k=10))
-    return f"KCUPI{digits}"
+    """§1.5 — cryptographically-secure UPI reference."""
+    return f"KCUPI{secrets.token_hex(5).upper()}"
 
 def process_simulated_payment(
     amount_paise: int,
@@ -35,4 +35,5 @@ def process_simulated_payment(
     }
 
 def digits_only(k: int) -> str:
-    return "".join(random.choices(string.digits, k=k))
+    """§1.5 — cryptographically-secure digit string."""
+    return "".join(secrets.choice(string.digits) for _ in range(k))

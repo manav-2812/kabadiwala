@@ -1,7 +1,7 @@
 import httpx
 from datetime import datetime, timezone, timedelta
-from typing import Optional
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from typing import Literal, Optional
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt, JWTError
@@ -14,6 +14,9 @@ from app.schemas.all_schemas import OTPRequest, OTPVerifyRequest, SignupRequest,
 import secrets
 from app.services.sms import generate_otp, send_sms_otp, clean_phone_number
 from app.services.email import send_email_otp
+
+# §1.0 — roles that self-signup is allowed to create
+_ALLOWED_SIGNUP_ROLES: frozenset[str] = frozenset({"collector", "recycler", "aggregator"})
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -57,7 +60,7 @@ async def get_current_user(
     return user
 
 @router.post("/request-otp")
-async def request_otp(data: OTPRequest, db: AsyncSession = Depends(get_db)):
+async def request_otp(data: OTPRequest, request: Request, db: AsyncSession = Depends(get_db)):
     # 1. Email OTP Flow
     if data.email and "@" in data.email:
         clean_email = data.email.strip().lower()
@@ -164,6 +167,15 @@ async def request_otp(data: OTPRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/signup")
 async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
+    # §1.0 — guard: admin cannot be created from public signup
+    if data.role not in _ALLOWED_SIGNUP_ROLES:
+        raise KabadiwalaAPIException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="INVALID_ROLE",
+            message_key="auth_invalid_phone",  # reuse generic key; details below
+            details={"detail": f"Role '{data.role}' is not allowed for self-signup. Allowed: {sorted(_ALLOWED_SIGNUP_ROLES)}"}
+        )
+
     clean_email: Optional[str] = data.email.strip().lower() if (data.email and "@" in data.email) else None
     is_email = clean_email is not None
     clean_phone: Optional[str] = clean_phone_number(data.phone or "") if not is_email else None
@@ -183,61 +195,89 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
     user = res.scalar_one_or_none()
 
     if user:
-        user.name = data.name.strip()
-        user.role = data.role
-        user.language = data.language
-        if clean_email:
-            user.email = clean_email
-    else:
-        temp_phone = clean_phone or f"99{secrets.token_hex(4)[:8]}"
-        user = User(
-            phone=temp_phone,
-            email=clean_email,
-            name=data.name.strip() or f"User {temp_phone[-4:]}",
-            role=data.role,
-            language=data.language
-        )
-        db.add(user)
-        await db.flush()
+        # §1.0 — NEVER modify an existing user's role/name/language from a public unauthenticated
+        # signup call. Just send a fresh OTP so they can log in.
+        real_otp = generate_otp()
+        user.otp_hash = get_password_hash(real_otp)
+        user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await db.commit()
 
-        if data.role == "collector":
-            collector = Collector(
-                user_id=user.id,
-                city=data.city or "Delhi NCR",
-                state=data.state or "Delhi",
-                lat=28.6139,
-                lng=77.2090
+        # Dispatch OTP to existing account
+        target = clean_email or clean_phone or ""
+        if clean_email:
+            email_res = await send_email_otp(clean_email, real_otp)
+            resp: dict = {
+                "status": "success",
+                "message": "Account exists. Verification code sent.",
+                "delivered": email_res.get("delivered", False),
+                "provider": email_res.get("provider", "Email Service")
+            }
+            if settings.ENVIRONMENT == "development" and not email_res.get("delivered"):
+                resp["dev_otp"] = real_otp
+        else:
+            sms_res = await send_sms_otp(clean_phone or "", real_otp)
+            resp = {
+                "status": "success",
+                "message": "Account exists. Verification code sent.",
+                "delivered": sms_res.get("delivered", False),
+                "provider": sms_res.get("provider", "Gateway")
+            }
+            if settings.ENVIRONMENT == "development" and not sms_res.get("delivered"):
+                resp["dev_otp"] = real_otp
+        return resp
+
+    # New user — create account
+    temp_phone = clean_phone or f"99{secrets.token_hex(4)[:8]}"
+    user = User(
+        phone=temp_phone,
+        email=clean_email,
+        name=data.name.strip() or f"User {temp_phone[-4:]}",
+        role=data.role,
+        language=data.language
+    )
+    db.add(user)
+    await db.flush()
+
+    if data.role == "collector":
+        collector = Collector(
+            user_id=user.id,
+            city=data.city or "",
+            state=data.state or "",
+            # §2.4 — no hardcoded Delhi coordinates; lat/lng remain NULL until real GPS captured
+        )
+        db.add(collector)
+    elif data.role == "recycler":
+        # §2.4 — new recyclers start PENDING; only an admin can mark verified
+        # Real license details required (no fabrication)
+        if not data.cpcb_license_no:
+            raise KabadiwalaAPIException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                code="MISSING_LICENSE",
+                message_key="auth_invalid_phone",
+                details={"detail": "cpcb_license_no is required for recycler signup"}
             )
-            db.add(collector)
-        elif data.role == "recycler":
-            now_dt = datetime.now(timezone.utc)
-            recycler = Recycler(
-                user_id=user.id,
-                company_name=data.company_name or f"{data.name} Eco-Recyclers",
-                contact_person=data.name.strip() or "Authorized Representative",
-                address=f"Industrial Area, {data.city or 'Delhi NCR'}",
-                city=data.city or "Delhi NCR",
-                state=data.state or "Delhi",
-                lat=28.6139,
-                lng=77.2090,
-                cpcb_license_no=data.cpcb_license_no or f"CPCB-REG-2024-{temp_phone[-4:]}",
-                spcb_authorization_no=f"SPCB-AUTH-2024-{temp_phone[-4:]}",
-                license_valid_from=now_dt,
-                license_valid_to=now_dt + timedelta(days=365 * 3),
-                authorization_status="verified",
-                reliability_score=95
-            )
-            db.add(recycler)
-        elif data.role == "aggregator":
-            aggregator = Aggregator(
-                user_id=user.id,
-                business_name=data.company_name or f"{data.name} Aggregation Center",
-                city=data.city or "Delhi NCR",
-                state=data.state or "Delhi",
-                lat=28.6139,
-                lng=77.2090
-            )
-            db.add(aggregator)
+        recycler = Recycler(
+            user_id=user.id,
+            company_name=data.company_name or f"{data.name} Eco-Recyclers",
+            contact_person=data.name.strip() or "Authorized Representative",
+            address=data.address or "",
+            city=data.city or "",
+            state=data.state or "",
+            # lat/lng NULL until admin verifies and enters coordinates
+            cpcb_license_no=data.cpcb_license_no,
+            # spcb_authorization_no must be provided; no fabrication
+            authorization_status="pending",  # §2.4: never auto-verified
+            # rating_avg, reliability_score remain NULL/default until real transactions
+        )
+        db.add(recycler)
+    elif data.role == "aggregator":
+        aggregator = Aggregator(
+            user_id=user.id,
+            business_name=data.company_name or f"{data.name} Aggregation Center",
+            city=data.city or "",
+            state=data.state or "",
+        )
+        db.add(aggregator)
 
     # Generate real cryptographically secure dynamic OTP
     real_otp = generate_otp()
@@ -431,9 +471,18 @@ async def verify_firebase(
     user = res.scalar_one_or_none()
 
     role = payload_in.get("role") or "collector"
+    # §1.0 — guard against admin self-registration via Firebase path
+    if role not in _ALLOWED_SIGNUP_ROLES:
+        raise KabadiwalaAPIException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="INVALID_ROLE",
+            message_key="auth_invalid_otp",
+            details={"detail": f"Role '{role}' is not allowed for self-signup."}
+        )
+
     name = (payload_in.get("name") or "").strip()
     language = payload_in.get("language") or "hi"
-    city = payload_in.get("city") or "Delhi NCR"
+    city = (payload_in.get("city") or "").strip()
     company_name = (payload_in.get("company_name") or "").strip()
     cpcb_license_no = (payload_in.get("cpcb_license_no") or "").strip()
 
@@ -452,18 +501,24 @@ async def verify_firebase(
             collector = Collector(
                 user_id=user.id,
                 city=city,
-                state="Delhi",
-                lat=28.6139,
-                lng=77.2090
+                state="",
+                # §2.4: no hardcoded Delhi coordinates
             )
             db.add(collector)
         elif role == "recycler":
+            # §2.4: no fabricated license or auto-verified status
+            if not cpcb_license_no:
+                raise KabadiwalaAPIException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    code="MISSING_LICENSE",
+                    message_key="auth_invalid_otp",
+                    details={"detail": "cpcb_license_no is required for recycler signup"}
+                )
             recycler = Recycler(
                 user_id=user.id,
                 company_name=company_name or f"{user.name} Eco-Recyclers",
-                cpcb_license_no=cpcb_license_no or f"CPCB-REG-2024-{clean_phone[-4:]}",
-                authorization_status="verified",
-                reliability_score=95
+                cpcb_license_no=cpcb_license_no,
+                authorization_status="pending",  # §2.4: never auto-verified
             )
             db.add(recycler)
         elif role == "aggregator":
@@ -471,26 +526,23 @@ async def verify_firebase(
                 user_id=user.id,
                 business_name=company_name or f"{user.name} Aggregation Center",
                 city=city,
-                state="Delhi",
-                lat=28.6139,
-                lng=77.2090
+                state="",
             )
             db.add(aggregator)
     else:
-        # Update user metadata if provided during signup
+        # Existing user: only update name/language — NEVER change role (§1.0)
         if name:
             user.name = name
-        if payload_in.get("role"):
-            user.role = role
         if payload_in.get("language"):
             user.language = language
+        # user.role is intentionally NOT updated here
 
-        # Ensure role entity exists
+        # Ensure role entity exists (don't create a new one with fake data)
         if user.role == "collector":
             stmt_c = select(Collector).where(Collector.user_id == user.id)
             c = (await db.execute(stmt_c)).scalar_one_or_none()
             if not c:
-                db.add(Collector(user_id=user.id, city=city, state="Delhi", lat=28.6139, lng=77.2090))
+                db.add(Collector(user_id=user.id, city=city, state=""))
         elif user.role == "recycler":
             stmt_r = select(Recycler).where(Recycler.user_id == user.id)
             r = (await db.execute(stmt_r)).scalar_one_or_none()

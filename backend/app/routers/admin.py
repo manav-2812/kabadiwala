@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 from app.db.session import get_db
-from app.routers.auth import get_current_user
+from app.core.rbac import require_role  # §1.1 RBAC
 from app.core.i18n import KabadiwalaAPIException
 from app.models.all_models import (
     User, Transaction, Lot, LotItem, Payment, AnomalyFlag, MatchingWeight,
@@ -46,6 +46,7 @@ class MatchingWeightsUpdate(BaseModel):
 async def list_anomalies(
     status_filter: Optional[str] = Query(None),
     severity_filter: Optional[str] = Query(None),
+    _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -97,7 +98,7 @@ async def list_anomalies(
 async def review_anomaly(
     id: str,
     payload: AnomalyReviewRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(AnomalyFlag).where(AnomalyFlag.id == id)
@@ -123,7 +124,10 @@ async def review_anomaly(
 
 # --- Explainable Matching Weights ---
 @router.get("/matching-weights")
-async def get_matching_weights(db: AsyncSession = Depends(get_db)):
+async def get_matching_weights(
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     stmt = select(MatchingWeight).order_by(desc(MatchingWeight.created_at))
     res = await db.execute(stmt)
     all_weights = res.scalars().all()
@@ -162,7 +166,7 @@ async def get_matching_weights(db: AsyncSession = Depends(get_db)):
 @router.put("/matching-weights")
 async def update_matching_weights(
     data: MatchingWeightsUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db)
 ):
     # Verify sum approximately 1.0
@@ -208,7 +212,10 @@ async def update_matching_weights(
 
 # --- Living Data Health ---
 @router.get("/data-health")
-async def get_data_health(db: AsyncSession = Depends(get_db)):
+async def get_data_health(
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     # Total lots and provenance
     stmt_lots = select(Lot)
     res_lots = await db.execute(stmt_lots)
@@ -276,7 +283,10 @@ async def get_data_health(db: AsyncSession = Depends(get_db)):
 
 # --- Anonymized CSV Export (HMAC-SHA256 phone hash, coarse GPS) ---
 @router.get("/export-anonymized-csv")
-async def export_anonymized_csv(db: AsyncSession = Depends(get_db)):
+async def export_anonymized_csv(
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     stmt = select(Lot).options(selectinload(Lot.items))
     res = await db.execute(stmt)
     lots = res.scalars().all()
@@ -350,7 +360,10 @@ class RetainRequest(BaseModel):
 
 # --- GET /admin/ml/overview ---
 @router.get("/ml/overview")
-async def ai_overview(db: AsyncSession = Depends(get_db)):
+async def ai_overview(
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     """
     AI Console: active models per task with gate status and metrics.
     Shows demo_only=true for all models until data gates are met.
@@ -389,6 +402,7 @@ async def list_predictions(
     task: Optional[str] = Query(None),
     override_only: bool = Query(False),
     limit: int = Query(50, ge=1, le=500),
+    _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db),
 ):
     """AI Console: predictions log, filterable by task and override status."""
@@ -419,6 +433,7 @@ async def list_predictions(
 @router.post("/ml/models/{model_id}/activate")
 async def activate_model(
     model_id: str,
+    _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db),
 ):
     """AI Console: promote a candidate model after gate checks."""
@@ -435,6 +450,7 @@ async def activate_model(
 @router.post("/ml/models/{model_id}/rollback")
 async def rollback_model_endpoint(
     model_id: str,
+    _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db),
 ):
     """AI Console: roll back to a previous model version."""
@@ -446,6 +462,7 @@ async def rollback_model_endpoint(
 async def list_unverified_labels(
     verified: bool = Query(False),
     limit: int = Query(50),
+    _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db),
 ):
     """AI Console: Label Review Queue -- unverified training labels for human review."""
@@ -477,6 +494,7 @@ async def list_unverified_labels(
 async def verify_label(
     label_id: str,
     req: LabelVerifyRequest,
+    _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db),
 ):
     """AI Console: Admin verifies or rejects a training label."""
@@ -519,7 +537,7 @@ class MatchingWeightsV2(BaseModel):
 
 
 @router.post("/matching-weights")
-async def update_matching_weights(req: MatchingWeightsV2, db: AsyncSession = Depends(get_db)):
+async def update_matching_weights(req: MatchingWeightsV2, _admin: User = Depends(require_role("admin")), db: AsyncSession = Depends(get_db)):  # §1.1
     """
     AI Console: update matching weights.
     Validates weights sum to 1.00 (±0.005 tolerance).
@@ -553,6 +571,7 @@ async def update_matching_weights(req: MatchingWeightsV2, db: AsyncSession = Dep
 async def get_drift_snapshots(
     task: Optional[str] = Query(None),
     days: int = Query(30, ge=1, le=365),
+    _admin: User = Depends(require_role("admin")),  # §1.1
     db: AsyncSession = Depends(get_db),
 ):
     """AI Console: drift monitoring snapshots (PSI, override rate, not-sure rate)."""
@@ -584,7 +603,11 @@ async def get_drift_snapshots(
 
 # --- POST /admin/ml/retrain ---
 @router.post("/ml/retrain")
-async def trigger_retrain(req: RetainRequest, db: AsyncSession = Depends(get_db)):
+async def trigger_retrain(
+    req: RetainRequest,
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     """
     AI Console: create a retrain candidate MLModel record.
     Does NOT auto-activate. Admin must review eval metrics and call /activate.
@@ -625,7 +648,10 @@ class RetireSyntheticRequest(BaseModel):
 
 
 @router.get("/collectors")
-async def list_admin_collectors(db: AsyncSession = Depends(get_db)):
+async def list_admin_collectors(
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     """List all collectors with summary KPIs and local script names."""
     stmt = select(Collector).options(selectinload(Collector.user)).order_by(Collector.collector_code)
     res = await db.execute(stmt)
@@ -655,7 +681,11 @@ async def list_admin_collectors(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/collectors/{collector_id}/360")
-async def get_collector_360(collector_id: str, db: AsyncSession = Depends(get_db)):
+async def get_collector_360(
+    collector_id: str,
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     """
     Collector 360 Page (Section 5):
     Complete profile, geographic operating area, lots timeline, earnings chart,
@@ -816,12 +846,20 @@ async def get_collector_360(collector_id: str, db: AsyncSession = Depends(get_db
 
 
 @router.post("/import-real")
-async def handle_import_real_data(req: RealDataImportRequest, db: AsyncSession = Depends(get_db)):
+async def handle_import_real_data(
+    req: RealDataImportRequest,
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     """Admin endpoint to ingest real field data with consent verification and quarantine."""
     return await import_real_data(req.csv_content, req.dataset_type, db)
 
 
 @router.post("/retire-synthetic")
-async def handle_retire_synthetic(req: RetireSyntheticRequest, db: AsyncSession = Depends(get_db)):
+async def handle_retire_synthetic(
+    req: RetireSyntheticRequest,
+    _admin: User = Depends(require_role("admin")),  # §1.1
+    db: AsyncSession = Depends(get_db)
+):
     """Admin endpoint to retire/archive synthetic personas as real field data onboards."""
     return await retire_synthetic_users(req.user_identifiers, db)

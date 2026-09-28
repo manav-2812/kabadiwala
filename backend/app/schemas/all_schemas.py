@@ -16,10 +16,11 @@ class SignupRequest(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     name: str
-    role: str = "collector"
+    role: str = "collector"  # validated at handler level against _ALLOWED_SIGNUP_ROLES
     language: str = "hi"
-    city: Optional[str] = "Delhi NCR"
-    state: Optional[str] = "Delhi"
+    city: Optional[str] = None
+    state: Optional[str] = None
+    address: Optional[str] = None
     company_name: Optional[str] = None
     cpcb_license_no: Optional[str] = None
 

@@ -9,8 +9,9 @@ from app.db.session import get_db
 from app.routers.auth import get_current_user
 from app.core.i18n import KabadiwalaAPIException
 from app.core.lot_state import validate_transition, LotStatus
+from app.core.security import generate_receipt_no
 from app.models.all_models import (
-    User, Lot, Quote, Transaction, Recycler, TraceabilityEvent, PickupAgent
+    User, Lot, Quote, Transaction, Recycler, Collector, TraceabilityEvent, PickupAgent
 )
 from app.schemas.all_schemas import QuoteCreate, QuoteResponse
 from app.services.trace import compute_event_hash, GENESIS_HASH
@@ -38,6 +39,14 @@ async def submit_quote(
         stmt_r = select(Recycler)
         res_r = await db.execute(stmt_r)
         rec = res_r.scalars().first()
+
+    if not rec:
+        raise KabadiwalaAPIException(
+            status_code=400,
+            code="RECYCLER_PROFILE_REQUIRED",
+            message_key="recycler_profile_required",
+            details={"detail": "A valid recycler profile is required to submit quotes."}
+        )
 
     quote = Quote(
         lot_id=lot.id,
@@ -89,7 +98,7 @@ async def submit_quote(
         recycler_id=rec.id,
         recycler_name=rec.company_name,
         recycler_cpcb_license=rec.cpcb_license_no,
-        recycler_rating=float(rec.rating_avg),
+        recycler_rating=float(rec.rating_avg) if rec.rating_avg is not None else 0.0,
         price_paise_total=quote.price_paise_total,
         pickup_mode=quote.pickup_mode,
         pickup_eta_at=quote.pickup_eta_at,
@@ -148,10 +157,23 @@ async def accept_quote(
     quote = res.scalar_one_or_none()
     if not quote:
         raise KabadiwalaAPIException(status_code=404, code="QUOTE_NOT_FOUND", message_key="quote_not_found")
-        
+
     lot = quote.lot
+
+    # §1.8 IDOR: verify the lot belongs to the calling user's collector record
+    stmt_c = select(Collector).where(Collector.user_id == user.id)
+    res_c = await db.execute(stmt_c)
+    caller_col = res_c.scalar_one_or_none()
+    # Return 404 (not 403) to avoid leaking existence of other users' resource IDs
+    if not caller_col or lot.collector_id != caller_col.id:
+        raise KabadiwalaAPIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code="LOT_NOT_FOUND",
+            message_key="lot_not_found"
+        )
+
     validate_transition(lot.status, LotStatus.ACCEPTED)
-    
+
     quote.status = "accepted"
     lot.status = LotStatus.ACCEPTED.value
 
@@ -164,8 +186,8 @@ async def accept_quote(
         res_ag = await db.execute(stmt_ag)
         agent = res_ag.scalars().first()
 
-    # Create transaction
-    rct_no = f"KC-RCT-{datetime.now(timezone.utc).year}-{random.randint(10000, 99999)}"
+    # Create transaction with §1.5 cryptographically-secure receipt number
+    rct_no = generate_receipt_no()
     tx = Transaction(
         lot_id=lot.id,
         quote_id=quote.id,
