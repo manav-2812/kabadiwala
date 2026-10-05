@@ -45,7 +45,7 @@ jobs:
           npx cap sync android
 
       - name: Setup Gradle Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
